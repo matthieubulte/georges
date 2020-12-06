@@ -88,7 +88,7 @@ vec3 texture(int texture_id, const vec3& pos) {
         float z = pos.z >= 0 ? pos.z : -pos.z + 0.5;
         return (fmod(x, 1) < 0.5) == (fmod(z, 1) < 0.5) ?
 vec3(1,1,1) : vec3(0,0,0);
-    } else if (texture_id == 2) { // torus
+    } else if (texture_id == 2) { // block
         return vec3(51/255.0f, 255/255.0f, 189/255.0f);
     } else if (texture_id == 3) { // sphere
         return vec3(255/255.0f, 189/255.0f, 51/255.0f);
@@ -162,7 +162,7 @@ int main() {
     unsigned int pixels_per_frame = 1000u;
 
     constexpr vec2 dim(dimx, dimy);
-    vec3 camera_pos = vec3( 0.0, 1.0, 4.5 );
+    vec3 camera_pos = vec3(0.0, 1.0, 4.5);
     
     bool quit = false;
     SDL_Event e;
@@ -177,35 +177,69 @@ int main() {
         printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
     }
     else {
-        //Create window
-        window = SDL_CreateWindow( "SDL Tutorial", 
+        window = SDL_CreateWindow("", 
             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
             dimx, dimy,
             SDL_WINDOW_SHOWN);
 
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
-        int pitch = 0;
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, dimx, dimy);
-        SDL_LockTexture(texture, nullptr, reinterpret_cast<void**>(&framebuffer), &pitch);
-        SDL_UnlockTexture(texture);
 
         //While application is running
         int frame_number = 0;
         Uint64 start = SDL_GetPerformanceCounter();
 
+        int dirx = 0, dirz = 0;
+
         while(!quit) {
             //Handle events on queue
-            while(SDL_PollEvent(&e) != 0 )
-                if( e.type == SDL_QUIT) quit = true;
+            while(SDL_PollEvent(&e) != 0 ) {
+                switch (e.type) {
+                    case SDL_QUIT:
+                        quit = true;
+                        break;
+                    case SDL_KEYDOWN:
+                        switch(e.key.keysym.sym ){
+                            case SDLK_LEFT:
+                                dirx = -1;
+                                break;
+                            case SDLK_RIGHT:
+                                dirx = 1;
+                                break;
+                            case SDLK_UP:
+                                dirz = -1;
+                                break;
+                            case SDLK_DOWN:
+                                dirz = 1;
+                                break;
+                            default: break;
+                        }
+                        break;
+                    case SDL_KEYUP:
+                        switch(e.key.keysym.sym ){
+                            case SDLK_LEFT:
+                                dirx = 0;
+                                break;
+                            case SDLK_RIGHT:
+                                dirx = 0;
+                                break;
+                            case SDLK_UP:
+                                dirz = 0;
+                                break;
+                            case SDLK_DOWN:
+                                dirz = 0;
+                                break;
+                            default: break;
+                        }
+                        break;
 
-            
-            // for (int y = 0; y < dimy; ++y) {
-            //     for (auto x = 0u; x < dimx; ++x) {
-            //         const unsigned int offset = (dimx * channels * y) + x * channels;
-            //         renderPixel(&framebuffer[offset], camera_pos, dim, vec2(x, dimy - y - 1));
-            //     }
-            // }
+                    default: break;
+                };
+            }
+
+            const float speed = 0.1f;
+            camera_pos.x += dirx * speed;
+            camera_pos.z += dirz * speed;
 
             for (int i = 0; i < pixels_per_frame; i++) {
                 const unsigned int x = rand() % dimx;
@@ -213,9 +247,6 @@ int main() {
                 const unsigned int offset = (dimx * channels * y) + x * channels;
                 renderPixel(&framebuffer[offset], camera_pos, dim, vec2(x, dimy - y - 1));
             }
-            
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-            SDL_RenderClear(renderer);
 
             SDL_UpdateTexture (
                 texture,
@@ -235,7 +266,7 @@ int main() {
 
             if (seconds > 2) {
                 const double ms_per_pixel = (ms_per_frame / (double)pixels_per_frame);
-                const double target_ms_per_frame = 1000.0/60.0f;
+                const double target_ms_per_frame = 1000.0/20.0f;
                 pixels_per_frame = (unsigned int)(target_ms_per_frame / ms_per_pixel);
 
                 cout
@@ -255,15 +286,6 @@ int main() {
     SDL_DestroyTexture(texture);
     SDL_DestroyWindow( window );
     SDL_Quit();
-
-	// 
-
-    // ofstream ofs("image.ppm", ios_base::out | ios_base::binary);
-    // ofs << "P6" << endl << dimx << ' ' << dimy << endl << "255" << endl;
- 
-    
-
-    // ofs.close();
  
     return EXIT_SUCCESS;
 }
