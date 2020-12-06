@@ -3,8 +3,14 @@
 set -e
 
 echo -n 'Compiling... '
-clang++ src/main.cpp src/vec2.hpp src/vec3.hpp src/mat3.hpp -std=c++14 -O3
+clang++ \
+    -std=c++14 -O3 \
+    -F/Library/Frameworks -framework SDL2 \
+        src/main.cpp src/vec2.hpp \
+        src/vec3.hpp src/mat3.hpp \
+        src/distances.hpp src/transformations.hpp
+
+    
 echo -n 'Running... '
 ./a.out
 echo 'Done.'
-open image.ppm

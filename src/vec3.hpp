@@ -68,6 +68,14 @@ vec3 vclamp(const vec3& v, float lo, float hi) {
     return vmin(vmax(v, lo), hi);
 }
 
+vec3 pos(const vec3& v) {
+    return vec3(std::max(0.0f, v.x), std::max(0.0f, v.y), std::max(0.0f, v.z));
+}
+
+vec3 linerp(vec3 lo, vec3 hi, float a) {
+    return (1-a)*lo + a*hi;
+}
+
 void print_vec3(const vec3& v) {
     using namespace std;
     cout << v.x << ' ' << v.y << ' ' << v.z << endl;

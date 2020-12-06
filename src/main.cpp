@@ -2,7 +2,12 @@
 #include <iostream>
 #include <cstdio>
 #include <cmath>
+#include <array>
 
+#include <SDL2/SDL.h>
+
+#include "distances.hpp"
+#include "transformations.hpp"
 #include "mat3.hpp"
 #include "vec3.hpp"
 #include "vec2.hpp"
@@ -27,90 +32,12 @@ vec3 ray_dir(float fov, const vec2& size, const vec2& pos ) {
 	return normalize(vec3(xy, -z));
 }
 
-vec3 pos(const vec3& v) {
-    return vec3(std::max(0.0f, v.x), std::max(0.0f, v.y), std::max(0.0f, v.z));
-}
-
-void fragColor(ofstream& ofs, const vec3& _c) {
+void fragColor(unsigned char* dest, const vec3& _c) {
     vec3 c = pos(_c * 255.0);
-    ofs << (char)((int)c.x) << (char)((int)c.y) << (char)((int)c.z);
-}
-
-mat3 viewRotation(const vec2& angles) {
-    vec2 c = apply(angles, cos);
-	vec2 s = apply(angles, sin);
-	
-    return mat3(
-		s.y , s.y * s.x, s.y * c.x,
-		0.0 , c.x      , -s.x,
-        -s.y, c.y * s.x, c.y * c.x
-	);
-}
-
-vec3 translate(const vec3& d, const vec3& p) {
-    return p - d;
-}
-
-vec3 symX(const vec3& p) {
-    vec3 q = p;
-    q.x = abs(p.x);
-    return q;
-}
-
-vec3 symXZ(const vec3& p) {
-    vec3 q = p;
-    q.x = abs(p.x);
-    q.z = abs(p.z);
-    return q;
-}
-
-vec3 repeatXZ(const vec2& pattern, const vec3& p) {
-    return {
-        fmod(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
-        p.y,
-        fmod(p.z + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
-    };
-}
-
-vec3 repeatXY(const vec2& pattern, const vec3& p) {
-    return {
-        fmod(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
-        fmod(p.y + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
-        p.z,
-    };
-}
-
-vec3 repeatLim(float c, float l, const vec3& p) {
-    return p-c*vclamp(apply(p/c, round),-l,l);
-}
-
-float dist_sphere(float r, const vec3& p) {
-    return len(p) - r;
-}
-
-float dist_box(const vec3& b, const vec3& p) {
-  vec3 q = apply(p, abs) - b;
-  return len(vmax(q,0.0f)) + min(max(q.x,max(q.y,q.z)),0.0f);
-}
-
-float dist_torus(const vec2& t, const vec3& p) {
-  vec2 q = vec2(len(vec2(p.x, p.z))-t.x,p.y);
-  return len(q)-t.y;
-}
-
-float dist_plane(const vec3& n, float h, const vec3& p) {
-  return dot(p,n) + h;
-}
-
-float displacement(const vec3& p) {
-    return sin(20*p.x)*sin(20*p.y)*sin(20*p.z);
-}
-
-vec2 dist_union(const vec2& res1, const vec2& res2) {
-    return res1.x < res2.x ? res1 : res2;
-}
-vec2 dist_union(const vec2& res1, const vec2& res2, const vec2& res3) {
-    return dist_union(res1, dist_union(res2, res3));
+    dest[0] = (unsigned char)(int)c.z; // blue
+    dest[1] = (unsigned char)(int)c.y; // green
+    dest[2] = (unsigned char)(int)c.x; // red
+    
 }
 
 vec2 dist_field(const vec3& p) {
@@ -147,10 +74,6 @@ vec3 normal(const vec3& p) {
                      d3*dist_field(p+d3).x + d4*dist_field(p+d4).x);
 }
 
-vec3 interp_color(vec3 lo, vec3 hi, float a) {
-    return (1-a)*lo + a*hi;
-}
-
 float clamp(float x, float lo, float hi) {
     return min(hi, max(lo, x));
 }
@@ -158,6 +81,7 @@ float clamp(float x, float lo, float hi) {
 float ambient(const vec3& p, const vec3& n) {
     return clamp(dot(n, light_dir), 0, 1);
 }
+
 vec3 texture(int texture_id, const vec3& pos) {
     if (texture_id == 1) { // floor
         float x = pos.x >= 0 ? pos.x : -pos.x + 0.5;
@@ -208,7 +132,7 @@ float shadow(const vec3& p, const vec3& n) {
     return res;
 }
 
-void renderPixel(ofstream& ofs, const vec3& camera_pos, const vec2& dim, const vec2& xy) {
+void renderPixel(unsigned char* dest, const vec3& camera_pos, const vec2& dim, const vec2& xy) {
     vec3 dir = ray_dir(45.0, dim, vec2(xy));
     vec3 color;
     vec2 res = march(camera_pos, dir, max_its);
@@ -230,27 +154,116 @@ void renderPixel(ofstream& ofs, const vec3& camera_pos, const vec2& dim, const v
         color = fog * light * texture((int)hit_texture, p);        
     }
 
-    fragColor(ofs, color);
+    fragColor(dest, color);
 }
 
 int main() {
-    constexpr auto dimx = 1280u, dimy = 720u;
+    constexpr auto dimx = 1280u, dimy = 720u, channels = 4u;
+    unsigned int pixels_per_frame = 1000u;
+
     constexpr vec2 dim(dimx, dimy);
+    vec3 camera_pos = vec3( 0.0, 1.0, 4.5 );
+    
+    bool quit = false;
+    SDL_Event e;
 
-	vec3 camera_pos = vec3( 0.0, 1.0, 4.5 );
-    vec2 angles = vec2(0,0); //-0.5 * flip(dim) * vec2(0.01, -0.01);
-    mat3 view_rot = viewRotation(angles); // todo, this is broken, fix it
+    array<unsigned char, dimx  * dimy * channels> framebuffer{};
 
-    ofstream ofs("image.ppm", ios_base::out | ios_base::binary);
-    ofs << "P6" << endl << dimx << ' ' << dimy << endl << "255" << endl;
- 
-    for (int y = dimy-1; y >= 0; --y) {
-        for (auto x = 0u; x < dimx; ++x) {
-            renderPixel(ofs, camera_pos, dim, vec2(x, y));
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+
+    if (SDL_Init( SDL_INIT_VIDEO ) < 0) {
+        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+    }
+    else {
+        //Create window
+        window = SDL_CreateWindow( "SDL Tutorial", 
+            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+            dimx, dimy,
+            SDL_WINDOW_SHOWN);
+
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+        int pitch = 0;
+        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, dimx, dimy);
+        SDL_LockTexture(texture, nullptr, reinterpret_cast<void**>(&framebuffer), &pitch);
+        SDL_UnlockTexture(texture);
+
+        //While application is running
+        int frame_number = 0;
+        Uint64 start = SDL_GetPerformanceCounter();
+
+        while(!quit) {
+            //Handle events on queue
+            while(SDL_PollEvent(&e) != 0 )
+                if( e.type == SDL_QUIT) quit = true;
+
+            
+            // for (int y = 0; y < dimy; ++y) {
+            //     for (auto x = 0u; x < dimx; ++x) {
+            //         const unsigned int offset = (dimx * channels * y) + x * channels;
+            //         renderPixel(&framebuffer[offset], camera_pos, dim, vec2(x, dimy - y - 1));
+            //     }
+            // }
+
+            for (int i = 0; i < pixels_per_frame; i++) {
+                const unsigned int x = rand() % dimx;
+                const unsigned int y = rand() % dimy;
+                const unsigned int offset = (dimx * channels * y) + x * channels;
+                renderPixel(&framebuffer[offset], camera_pos, dim, vec2(x, dimy - y - 1));
+            }
+            
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+            SDL_RenderClear(renderer);
+
+            SDL_UpdateTexture (
+                texture,
+                NULL,
+                framebuffer.data(),
+                dimx * channels
+                );
+
+            SDL_RenderCopy(renderer, texture, NULL, NULL);
+            SDL_RenderPresent(renderer);
+
+            frame_number++;
+            const Uint64 end = SDL_GetPerformanceCounter();
+            const static Uint64 freq = SDL_GetPerformanceFrequency();
+            const double seconds = ( end - start ) / static_cast< double >( freq );
+            const double ms_per_frame = ( seconds * 1000.0 ) / frame_number;
+
+            if (seconds > 2) {
+                const double ms_per_pixel = (ms_per_frame / (double)pixels_per_frame);
+                const double target_ms_per_frame = 1000.0/60.0f;
+                pixels_per_frame = (unsigned int)(target_ms_per_frame / ms_per_pixel);
+
+                cout
+                    << frame_number << " frames in "
+                    << setprecision(1) << fixed << seconds << " seconds = "
+                    << setprecision(1) << fixed << frame_number / seconds << " FPS ("
+                    << setprecision(3) << fixed << ms_per_frame << " ms/frame, "
+                    << setprecision(3) << fixed << ms_per_pixel << " ms/pixel) new pixels_per_frame = "
+                    << setprecision(1) << fixed << pixels_per_frame
+                    << endl;
+                start = end;
+                frame_number = 0;
+            }
         }
     }
 
-    ofs.close();
+    SDL_DestroyTexture(texture);
+    SDL_DestroyWindow( window );
+    SDL_Quit();
+
+	// 
+
+    // ofstream ofs("image.ppm", ios_base::out | ios_base::binary);
+    // ofs << "P6" << endl << dimx << ' ' << dimy << endl << "255" << endl;
+ 
+    
+
+    // ofs.close();
  
     return EXIT_SUCCESS;
 }
