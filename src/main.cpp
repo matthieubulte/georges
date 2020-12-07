@@ -1,10 +1,5 @@
-#include <fstream>
-#include <iostream>
-#include <cstdio>
 #include <cmath>
-#include <array>
-
-#include <SDL2/SDL.h>
+#include <tuple>
 
 #include "distances.hpp"
 #include "transformations.hpp"
@@ -12,7 +7,13 @@
 #include "vec3.hpp"
 #include "vec2.hpp"
 
+#include "Screen.hpp"
+#include "Controls.hpp"
+#include "PerformanceHelper.hpp"
+
 using namespace std;
+
+typedef std::tuple<unsigned char,unsigned char,unsigned char> color;
 
 #define DEG_TO_RAD (M_PI / 180)
 
@@ -30,14 +31,6 @@ vec3 ray_dir(float fov, const vec2& size, const vec2& pos ) {
 	float z = size.y * 0.5 * cot_half_fov;
 	
 	return normalize(vec3(xy, -z));
-}
-
-void fragColor(unsigned char* dest, const vec3& _c) {
-    vec3 c = pos(_c * 255.0);
-    dest[0] = (unsigned char)(int)c.z; // blue
-    dest[1] = (unsigned char)(int)c.y; // green
-    dest[2] = (unsigned char)(int)c.x; // red
-    
 }
 
 vec2 dist_field(const vec3& p) {
@@ -89,9 +82,9 @@ vec3 texture(int texture_id, const vec3& pos) {
         return (fmod(x, 1) < 0.5) == (fmod(z, 1) < 0.5) ?
 vec3(1,1,1) : vec3(0,0,0);
     } else if (texture_id == 2) { // block
-        return vec3(51/255.0f, 255/255.0f, 189/255.0f);
+        return vec3(51, 255, 189)/255.0f;
     } else if (texture_id == 3) { // sphere
-        return vec3(255/255.0f, 189/255.0f, 51/255.0f);
+        return vec3(255, 189, 51)/255.0f;
     }
     return vec3(0,1,0);
 }
@@ -132,7 +125,7 @@ float shadow(const vec3& p, const vec3& n) {
     return res;
 }
 
-void renderPixel(unsigned char* dest, const vec3& camera_pos, const vec2& dim, const vec2& xy) {
+color renderPixel(const vec3& camera_pos, const vec2& dim, const vec2& xy) {
     vec3 dir = ray_dir(45.0, dim, vec2(xy));
     vec3 color;
     vec2 res = march(camera_pos, dir, max_its);
@@ -154,138 +147,56 @@ void renderPixel(unsigned char* dest, const vec3& camera_pos, const vec2& dim, c
         color = fog * light * texture((int)hit_texture, p);        
     }
 
-    fragColor(dest, color);
+    color = 255.0f * color;
+
+    return std::make_tuple(
+        (unsigned char)(int)color.x,
+        (unsigned char)(int)color.y,
+        (unsigned char)(int)color.z
+    );
 }
 
 int main() {
     constexpr auto dimx = 1280u, dimy = 720u, channels = 4u;
-    unsigned int pixels_per_frame = 1000u;
-
     constexpr vec2 dim(dimx, dimy);
-    vec3 camera_pos = vec3(0.0, 1.0, 4.5);
+
+    const unsigned int target_fps = 20;
+    const unsigned int seconds_between_perf_adjustment = 2;
+
+    const float speed = 0.1f;
     
-    bool quit = false;
-    SDL_Event e;
-
-    array<unsigned char, dimx  * dimy * channels> framebuffer{};
-
-    SDL_Window *window;
-    SDL_Renderer *renderer;
-    SDL_Texture *texture;
-
-    if (SDL_Init( SDL_INIT_VIDEO ) < 0) {
-        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+    vec3 camera_pos = vec3(0.0, 1.0, 4.5);
+    float pixels_per_frame = 1000;
+    
+    Screen<dimx, dimy> screen;
+    controles_state state;
+    PerformanceHelper perf_helper(
+        seconds_between_perf_adjustment, 
+        target_fps,
+        &pixels_per_frame,
+        true);
+    
+    if (!screen.initialize("")) {
+        return -1;
     }
-    else {
-        window = SDL_CreateWindow("", 
-            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            dimx, dimy,
-            SDL_WINDOW_SHOWN);
 
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, dimx, dimy);
+    while(!state.quit) {
+        poll_state(state);
 
-        //While application is running
-        int frame_number = 0;
-        Uint64 start = SDL_GetPerformanceCounter();
+        camera_pos.x += (state.right - state.left) * speed;
+        camera_pos.z += (state.down - state.up) * speed;
 
-        int dirx = 0, dirz = 0;
-
-        while(!quit) {
-            //Handle events on queue
-            while(SDL_PollEvent(&e) != 0 ) {
-                switch (e.type) {
-                    case SDL_QUIT:
-                        quit = true;
-                        break;
-                    case SDL_KEYDOWN:
-                        switch(e.key.keysym.sym ){
-                            case SDLK_LEFT:
-                                dirx = -1;
-                                break;
-                            case SDLK_RIGHT:
-                                dirx = 1;
-                                break;
-                            case SDLK_UP:
-                                dirz = -1;
-                                break;
-                            case SDLK_DOWN:
-                                dirz = 1;
-                                break;
-                            default: break;
-                        }
-                        break;
-                    case SDL_KEYUP:
-                        switch(e.key.keysym.sym ){
-                            case SDLK_LEFT:
-                                dirx = 0;
-                                break;
-                            case SDLK_RIGHT:
-                                dirx = 0;
-                                break;
-                            case SDLK_UP:
-                                dirz = 0;
-                                break;
-                            case SDLK_DOWN:
-                                dirz = 0;
-                                break;
-                            default: break;
-                        }
-                        break;
-
-                    default: break;
-                };
-            }
-
-            const float speed = 0.1f;
-            camera_pos.x += dirx * speed;
-            camera_pos.z += dirz * speed;
-
-            for (int i = 0; i < pixels_per_frame; i++) {
-                const unsigned int x = rand() % dimx;
-                const unsigned int y = rand() % dimy;
-                const unsigned int offset = (dimx * channels * y) + x * channels;
-                renderPixel(&framebuffer[offset], camera_pos, dim, vec2(x, dimy - y - 1));
-            }
-
-            SDL_UpdateTexture (
-                texture,
-                NULL,
-                framebuffer.data(),
-                dimx * channels
-                );
-
-            SDL_RenderCopy(renderer, texture, NULL, NULL);
-            SDL_RenderPresent(renderer);
-
-            frame_number++;
-            const Uint64 end = SDL_GetPerformanceCounter();
-            const static Uint64 freq = SDL_GetPerformanceFrequency();
-            const double seconds = ( end - start ) / static_cast< double >( freq );
-            const double ms_per_frame = ( seconds * 1000.0 ) / frame_number;
-
-            if (seconds > 2) {
-                const double ms_per_pixel = (ms_per_frame / (double)pixels_per_frame);
-                const double target_ms_per_frame = 1000.0/20.0f;
-                pixels_per_frame = (unsigned int)(target_ms_per_frame / ms_per_pixel);
-
-                cout
-                    << frame_number << " frames in "
-                    << setprecision(1) << fixed << seconds << " seconds = "
-                    << setprecision(1) << fixed << frame_number / seconds << " FPS ("
-                    << setprecision(3) << fixed << ms_per_frame << " ms/frame, "
-                    << setprecision(3) << fixed << ms_per_pixel << " ms/pixel) new pixels_per_frame = "
-                    << setprecision(1) << fixed << pixels_per_frame
-                    << endl;
-                start = end;
-                frame_number = 0;
-            }
+        for (int i = 0; i < (unsigned int)pixels_per_frame; i++) {
+            const unsigned int x = rand() % dimx;
+            const unsigned int y = rand() % dimy;
+            
+            color c = renderPixel(camera_pos, dim, vec2(x, dimy - y - 1));
+            screen.put_pixel(x, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));
         }
-    }
 
-    SDL_DestroyTexture(texture);
-    SDL_DestroyWindow( window );
-    SDL_Quit();
- 
+        screen.render();
+        perf_helper.tick();
+    }
+    
     return EXIT_SUCCESS;
 }
