@@ -22,7 +22,6 @@ class Screen {
     SDL_Texture *frame_texture;
 
     std::array<unsigned char, screen_width * screen_height * 4> framebuffer {};
-
 };
 
 template<size_t screen_width, size_t screen_height>

@@ -1,5 +1,7 @@
 #include <cmath>
 #include <tuple>
+#include <iostream>
+#include <iomanip>
 
 #include "distances.hpp"
 #include "transformations.hpp"
@@ -9,7 +11,7 @@
 
 #include "Screen.hpp"
 #include "Controls.hpp"
-#include "PerformanceHelper.hpp"
+#include "PerformanceMonitor.hpp"
 
 using namespace std;
 
@@ -160,42 +162,53 @@ int main() {
     constexpr auto dimx = 1280u, dimy = 720u, channels = 4u;
     constexpr vec2 dim(dimx, dimy);
 
-    const unsigned int target_fps = 20;
-    const unsigned int seconds_between_perf_adjustment = 2;
-
+    const unsigned int seconds_between_logs = 1;
     const float speed = 0.1f;
     
     vec3 camera_pos = vec3(0.0, 1.0, 4.5);
-    float pixels_per_frame = 1000;
     
     Screen<dimx, dimy> screen;
     controles_state state;
-    PerformanceHelper perf_helper(
-        seconds_between_perf_adjustment, 
-        target_fps,
-        &pixels_per_frame,
-        true);
+    PerformanceMonitor perf_monitor(seconds_between_logs);
     
     if (!screen.initialize("")) {
         return -1;
     }
 
+    std::array<bool, dimx * dimy> rendered_buffer {};
+
     while(!state.quit) {
         poll_state(state);
-
         camera_pos.x += (state.right - state.left) * speed;
         camera_pos.z += (state.down - state.up) * speed;
 
-        for (int i = 0; i < (unsigned int)pixels_per_frame; i++) {
+        if (state.down || state.right || state.left || state.up) {
+            std::fill(std::begin(rendered_buffer), std::end(rendered_buffer), false);
+        }
+
+        for (int i = 0; i < 20000; i++) {
             const unsigned int x = rand() % dimx;
             const unsigned int y = rand() % dimy;
-            
+
+            const unsigned int offset = (dimx * y) + x;
+            if(rendered_buffer[offset]) continue;
+
             color c = renderPixel(camera_pos, dim, vec2(x, dimy - y - 1));
+            rendered_buffer[offset] = true;
+
             screen.put_pixel(x, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+            if (x > 0 && !rendered_buffer[(dimx * y) + x-1])
+                screen.put_pixel(x-1, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+            if (y > 0 && !rendered_buffer[(dimx * (y-1)) + x])
+                screen.put_pixel(x, y-1, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+            if (x < dimx - 1 && !rendered_buffer[(dimx * y) + x + 1])
+                screen.put_pixel(x+1, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+            if (y < dimy - 1 && !rendered_buffer[(dimx * (y+1)) + x])
+                screen.put_pixel(x, y+1, std::get<0>(c), std::get<1>(c), std::get<2>(c));
         }
 
         screen.render();
-        perf_helper.tick();
+        perf_monitor.tick();
     }
     
     return EXIT_SUCCESS;
