@@ -23,22 +23,22 @@ vec3 symXZ(const vec3& p) {
 
 vec3 repeatXZ(const vec2& pattern, const vec3& p) {
     return {
-        fmod(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
+        fmodf(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
         p.y,
-        fmod(p.z + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
+        fmodf(p.z + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
     };
 }
 
 vec3 repeatXY(const vec2& pattern, const vec3& p) {
     return {
-        fmod(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
-        fmod(p.y + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
+        fmodf(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
+        fmodf(p.y + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
         p.z,
     };
 }
 
 vec3 repeatLim(float c, float l, const vec3& p) {
-    return p-c*vclamp(apply(p/c, round),-l,l);
+    return p-c*vclamp(apply(p/c, roundf),-l,l);
 }
 
 float displacement(const vec3& p) {

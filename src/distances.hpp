@@ -1,6 +1,8 @@
 #ifndef DISTANCES_H
 #define DISTANCES_H
 
+#include <cmath>
+
 #include "vec3.hpp"
 #include "vec2.hpp"
 
