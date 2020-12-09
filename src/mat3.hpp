@@ -14,6 +14,14 @@ typedef struct mat3 {
     }
 } mat3;
 
+mat3 rotationY(float angle) {
+    return mat3(
+        cos(angle),  0.0f, sin(angle),
+        0.0f,           1.0f, 0.0f,
+        -sin(angle), 0.0f, cos(angle)
+    );
+}
+
 mat3 transpose(const mat3& m) {
     return {m[0], m[3], m[6],
             m[1], m[4], m[7],
@@ -25,6 +33,7 @@ vec3 operator*(const mat3& m, const vec3& v) {
             m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
             m[6]*v[0] + m[7]*v[1] + m[8]*v[2]};
 }
+
 vec3 operator*(const vec3& v, const mat3& m) { 
     return transpose(m)*v;
 }

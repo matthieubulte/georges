@@ -26,13 +26,14 @@ const int max_its = 256;
 const vec3 light_dir = normalize(vec3(-0.3, 0.3, 0.1));
 vec3 background_color(0.4,0.56,0.97);
 
-vec3 ray_dir(float fov, const vec2& size, const vec2& pos ) {
+vec3 ray_dir(float fov, const mat3& view_rot, const vec2& size, const vec2& pos ) {
 	vec2 xy = pos - size * 0.5;
 
 	float cot_half_fov = tan((90.0 - fov * 0.5) * DEG_TO_RAD);
 	float z = size[1] * 0.5 * cot_half_fov;
 	
-	return normalize(vec3(xy, -z));
+	vec3 dir = normalize(vec3(xy, -z));
+    return view_rot * dir;
 }
 
 vec2 dist_field(const vec3& p) {
@@ -84,9 +85,9 @@ vec3 texture(int texture_id, const vec3& pos) {
         return (fmod(x, 1) < 0.5) == (fmod(z, 1) < 0.5) ?
 vec3(1,1,1) : vec3(0,0,0);
     } else if (texture_id == 2) { // block
-        return vec3(51, 255, 189)/255.0f;
+        return vec3(51, 255, 189)/255.0f/5.0;
     } else if (texture_id == 3) { // sphere
-        return vec3(255, 189, 51)/255.0f;
+        return vec3(255, 189, 51)/255.0f/5.0;
     }
     return vec3(0,1,0);
 }
@@ -115,9 +116,9 @@ float shadow(const vec3& p, const vec3& n) {
     for (int s = 0; s < 32 || t <3.0; s++) {
         dres = dist_field(p + t*light_dir);
         h = dres[0];
-        res = min(res, 5*h/t);
+        res = min(res, 10*h/t);
         if (h < 0.0001) {
-            res = 0.1;
+            res = 0.0;
             break;
         }
         
@@ -127,8 +128,19 @@ float shadow(const vec3& p, const vec3& n) {
     return res;
 }
 
-color renderPixel(const vec3& camera_pos, const vec2& dim, const vec2& xy) {
-    vec3 dir = ray_dir(45.0, dim, vec2(xy));
+vec3 apply_fog(const vec3& original_color, float distance, const vec3& ray_dir, const vec3& sun_dir) {
+    float fog = 1.0 - exp(-powf(distance/40.0f, 2));
+    float sun = max(dot(ray_dir, sun_dir), 0.0f);
+    vec3 fog_color = interp(
+        vec3(1.0,0.9,0.7), // sun yellow-ish
+        vec3(0.5, 0.6, 0.7), // sky blue-ish
+        sun
+    );
+    return interp(fog_color, original_color, fog);
+}
+
+color renderPixel(const vec3& camera_pos, const mat3& view_rot, const vec2& dim, const vec2& xy) {
+    vec3 dir = ray_dir(45.0, view_rot, dim, vec2(xy));
     vec3 color;
     vec2 res = march(camera_pos, dir, max_its);
 
@@ -141,14 +153,22 @@ color renderPixel(const vec3& camera_pos, const vec2& dim, const vec2& xy) {
         vec3 p = camera_pos + hit_time * dir;
         vec3 n = normal(p);
 
-        float light = 1.0;
-        light *= ambient(p, n);
-        light *= shadow(p, n);
+        float sha = clamp(shadow(p, n), 0, 1);
+        float sun = clamp(dot(n, light_dir), 0, 1);
+        float sky = clamp(0.5 + 0.5*n[1], 0, 1);
+        float ind = clamp(dot(n, normalize(light_dir*vec3(-1.0,0.0,-1.0))), 0, 1);
 
-        float fog = exp(-0.0005*hit_time*hit_time*hit_time);
+        // compute lighting
+        vec3 lin = vec3(0,0,0);
+        lin = lin + sun * vec3(1.64,1.27,0.99)/2 * pow(sha,vec3(1.0,1.2,1.5));
+        lin = lin + sky * vec3(0.16,0.20,0.28);
+        lin = lin + ind * vec3(0.40,0.28,0.20);
 
-        color = fog * light * texture((int)hit_texture, p);
+        color = lin * texture((int)hit_texture, p);    
     }
+
+    color = apply_fog(color, hit_time, dir, light_dir);
+    color = pow(color, 1.0/2.2); // gamma correction
 
     color = 255.0f * color;
 
@@ -165,9 +185,12 @@ int main() {
     constexpr vec2 dim(dimx, dimy);
 
     const unsigned int seconds_between_logs = 1;
-    const float speed = 0.1f;
+    const float walk_speed = 0.1f;
+    const float turn_speed = 0.05f;
     
     vec3 camera_pos = vec3(0.0, 1.0, 4.5);
+    float view_rot = 0.0f;
+    mat3 rot = rotationY(view_rot);
     
     Screen<dimx, dimy> screen;
     controles_state state;
@@ -182,9 +205,15 @@ int main() {
 
     while(!state.quit) {
         poll_state(state);
-        camera_pos[0] += (state.right - state.left) * speed;
-        camera_pos[2] += (state.down - state.up) * speed;
 
+        view_rot += (state.left - state.right) * turn_speed;
+        view_rot = fmodf(view_rot, 2.0 * M_PI);
+
+        rot = rotationY(view_rot);
+
+        vec3 walk_dir = vec3(0, 0, (state.down - state.up) * walk_speed);
+        camera_pos = camera_pos + rot * walk_dir;
+        
         if (state.down || state.right || state.left || state.up) {
             std::fill(std::begin(rendered_buffer), std::end(rendered_buffer), false);
         }
@@ -199,7 +228,7 @@ int main() {
 
             pixels_rendered_in_frame++;
 
-            color c = renderPixel(camera_pos, dim, vec2(x, dimy - y - 1));
+            color c = renderPixel(camera_pos, rot, dim, vec2(x, dimy - y - 1));
             rendered_buffer[offset] = true;
 
             screen.put_pixel(x, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));

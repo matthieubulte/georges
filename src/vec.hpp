@@ -156,6 +156,28 @@ vec<N> normalize(const vec<N>& v) {
     return v/vlen;
 }
 
+template<size_t N>
+vec<N> interp(const vec<N>& v, const vec<N>& w, float a) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = a * v[i] + (1 - a)*w[i];
+    return res;
+}
+
+template<size_t N>
+vec<N> pow(const vec<N>& v, float a) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = pow(v[i], a);
+    return res;
+}
+
+template<size_t N>
+vec<N> pow(float a, const vec<N>& v) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = pow(a, v[i]);
+    return res;
+}
+
+
 template <size_t N>
 std::ostream& operator<<(std::ostream& o, const vec<N>& v) {
     copy(v.data.cbegin(), v.data.cend(), std::ostream_iterator<float>(o, " "));
