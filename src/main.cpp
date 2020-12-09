@@ -2,12 +2,12 @@
 #include <tuple>
 #include <iostream>
 #include <iomanip>
+#include <array>
 
 #include "distances.hpp"
 #include "transformations.hpp"
 #include "mat3.hpp"
-#include "vec3.hpp"
-#include "vec2.hpp"
+#include "vec.hpp"
 
 #include "Screen.hpp"
 #include "Controls.hpp"
@@ -23,14 +23,14 @@ const float grad_step = 0.01;
 const float max_dist = 10000.0f;
 const int max_its = 256;
 
-const vec3 light_dir = normalize({-0.3, 0.3, 0.1});
+const vec3 light_dir = normalize(vec3(-0.3, 0.3, 0.1));
 vec3 background_color(0.4,0.56,0.97);
 
 vec3 ray_dir(float fov, const vec2& size, const vec2& pos ) {
 	vec2 xy = pos - size * 0.5;
 
 	float cot_half_fov = tan((90.0 - fov * 0.5) * DEG_TO_RAD);
-	float z = size.y * 0.5 * cot_half_fov;
+	float z = size[1] * 0.5 * cot_half_fov;
 	
 	return normalize(vec3(xy, -z));
 }
@@ -46,7 +46,7 @@ vec2 dist_field(const vec3& p) {
 
     // box
     pt = translate(vec3(.75,.75,-.5), p);
-    d = dist_box({1, 0.2, 1}, pt);
+    d = dist_box(vec3(1, 0.2, 1), pt);
     vec2 rb = vec2(d, /* texture */ 2);
     
     // sphere
@@ -65,8 +65,8 @@ vec3 normal(const vec3& p) {
     vec3 d3(-d,d,-d);
     vec3 d4(d,d,d);
 
-    return normalize(d1*dist_field(p+d1).x + d2*dist_field(p+d2).x + 
-                     d3*dist_field(p+d3).x + d4*dist_field(p+d4).x);
+    return normalize(d1*dist_field(p+d1)[0] + d2*dist_field(p+d2)[0] + 
+                     d3*dist_field(p+d3)[0] + d4*dist_field(p+d4)[0]);
 }
 
 float clamp(float x, float lo, float hi) {
@@ -79,8 +79,8 @@ float ambient(const vec3& p, const vec3& n) {
 
 vec3 texture(int texture_id, const vec3& pos) {
     if (texture_id == 1) { // floor
-        float x = pos.x >= 0 ? pos.x : -pos.x + 0.5;
-        float z = pos.z >= 0 ? pos.z : -pos.z + 0.5;
+        float x = pos[0] >= 0 ? pos[0] : -pos[0] + 0.5;
+        float z = pos[2] >= 0 ? pos[2] : -pos[2] + 0.5;
         return (fmod(x, 1) < 0.5) == (fmod(z, 1) < 0.5) ?
 vec3(1,1,1) : vec3(0,0,0);
     } else if (texture_id == 2) { // block
@@ -97,10 +97,10 @@ vec2 march(const vec3& origin, const vec3& direction, int steps) {
 
     for (int s = 0; s < steps && t < max_dist; s++) {
         res = dist_field(origin + t * direction);
-        if (res.x < 0.0005*t) {
-            return vec2(t, res.y);
+        if (res[0] < 0.0005*t) {
+            return vec2(t, res[1]);
         }
-        t += res.x;
+        t += res[0];
     }
 
     return vec2(-1, 0);
@@ -114,7 +114,7 @@ float shadow(const vec3& p, const vec3& n) {
 
     for (int s = 0; s < 32 || t <3.0; s++) {
         dres = dist_field(p + t*light_dir);
-        h = dres.x;
+        h = dres[0];
         res = min(res, 5*h/t);
         if (h < 0.0001) {
             res = 0.1;
@@ -131,8 +131,9 @@ color renderPixel(const vec3& camera_pos, const vec2& dim, const vec2& xy) {
     vec3 dir = ray_dir(45.0, dim, vec2(xy));
     vec3 color;
     vec2 res = march(camera_pos, dir, max_its);
-    float hit_time = res.x;
-    float hit_texture = res.y;
+
+    float hit_time = res[0];
+    float hit_texture = res[1];
 
     if (hit_time < 0) {
         color = background_color;
@@ -146,15 +147,16 @@ color renderPixel(const vec3& camera_pos, const vec2& dim, const vec2& xy) {
 
         float fog = exp(-0.0005*hit_time*hit_time*hit_time);
 
-        color = fog * light * texture((int)hit_texture, p);        
+        color = fog * light * texture((int)hit_texture, p);
     }
 
     color = 255.0f * color;
 
+
     return std::make_tuple(
-        (unsigned char)(int)color.x,
-        (unsigned char)(int)color.y,
-        (unsigned char)(int)color.z
+        (unsigned char)(int)color[0],
+        (unsigned char)(int)color[1],
+        (unsigned char)(int)color[2]
     );
 }
 
@@ -176,22 +178,26 @@ int main() {
     }
 
     std::array<bool, dimx * dimy> rendered_buffer {};
+    unsigned int pixels_rendered_in_frame = 0;
 
     while(!state.quit) {
         poll_state(state);
-        camera_pos.x += (state.right - state.left) * speed;
-        camera_pos.z += (state.down - state.up) * speed;
+        camera_pos[0] += (state.right - state.left) * speed;
+        camera_pos[2] += (state.down - state.up) * speed;
 
         if (state.down || state.right || state.left || state.up) {
             std::fill(std::begin(rendered_buffer), std::end(rendered_buffer), false);
         }
 
+        pixels_rendered_in_frame = 0;
         for (int i = 0; i < 20000; i++) {
             const unsigned int x = rand() % dimx;
             const unsigned int y = rand() % dimy;
 
             const unsigned int offset = (dimx * y) + x;
             if(rendered_buffer[offset]) continue;
+
+            pixels_rendered_in_frame++;
 
             color c = renderPixel(camera_pos, dim, vec2(x, dimy - y - 1));
             rendered_buffer[offset] = true;
@@ -208,7 +214,7 @@ int main() {
         }
 
         screen.render();
-        perf_monitor.tick();
+        perf_monitor.tick(pixels_rendered_in_frame);
     }
     
     return EXIT_SUCCESS;

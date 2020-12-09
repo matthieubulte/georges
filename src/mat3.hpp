@@ -2,7 +2,7 @@
 #define MAT3_H
 
 #include <iostream>
-#include "vec3.hpp"
+#include "vec.hpp"
 
 typedef struct mat3 {
     float data[9];
@@ -21,9 +21,9 @@ mat3 transpose(const mat3& m) {
 }
 
 vec3 operator*(const mat3& m, const vec3& v) { 
-    return {m[0]*v.x + m[1]*v.y + m[2]*v.z,
-            m[3]*v.x + m[4]*v.y + m[5]*v.z,
-            m[6]*v.x + m[7]*v.y + m[8]*v.z};
+    return {m[0]*v[0] + m[1]*v[1] + m[2]*v[2],
+            m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
+            m[6]*v[0] + m[7]*v[1] + m[8]*v[2]};
 }
 vec3 operator*(const vec3& v, const mat3& m) { 
     return transpose(m)*v;

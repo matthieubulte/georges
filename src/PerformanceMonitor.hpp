@@ -10,11 +10,12 @@ class PerformanceMonitor {
     PerformanceMonitor(unsigned int seconds_between_update)
         : seconds_between_update(seconds_between_update),
           frame_start(SDL_GetPerformanceCounter()),
-          num_frames(0)
+          num_frames(0), work_done(0)
            {}
 
-    void tick() {
+    void tick(unsigned int work_done) {
         this->num_frames++;
+        this->work_done += work_done;
 
         const Uint64 frame_end = SDL_GetPerformanceCounter();
         const Uint64 freq = SDL_GetPerformanceFrequency();
@@ -26,17 +27,23 @@ class PerformanceMonitor {
                 << "PERF: "
                 << std::setprecision(1) << std::fixed << this->num_frames / seconds_since_last_update << " fps ("
                 << std::setprecision(3) << std::fixed << ms_per_frame
-                << " ms/frame)"
+                << " ms/frame) | "
+                << this->work_done
+                << " units of work done ("
+                << std::setprecision(3) << std::fixed << (this->work_done / (seconds_since_last_update * 1000.0f))
+                << " units/ms)"
                 << std::endl;
         
             this->frame_start = frame_end;
             this->num_frames = 0;
+            this->work_done = 0;
         }
     }
 
     private:
     Uint64 frame_start;
     unsigned int num_frames;
+    unsigned int work_done;
     unsigned int seconds_between_update;
 };
 

@@ -1,8 +1,7 @@
 #ifndef TRANSFORMATIONS_H
 #define TRANSFORMATIONS_H
 
-#include "vec3.hpp"
-#include "vec2.hpp"
+#include "vec.hpp"
 
 vec3 translate(const vec3& d, const vec3& p) {
     return p - d;
@@ -10,30 +9,30 @@ vec3 translate(const vec3& d, const vec3& p) {
 
 vec3 symX(const vec3& p) {
     vec3 q = p;
-    q.x = abs(p.x);
+    q[0] = abs(p[0]);
     return q;
 }
 
 vec3 symXZ(const vec3& p) {
     vec3 q = p;
-    q.x = abs(p.x);
-    q.z = abs(p.z);
+    q[0] = abs(p[0]);
+    q[2] = abs(p[2]);
     return q;
 }
 
 vec3 repeatXZ(const vec2& pattern, const vec3& p) {
     return {
-        fmodf(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
-        p.y,
-        fmodf(p.z + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
+        fmodf(p[0] + 0.5f * pattern[0], pattern[0]) - 0.5f * pattern[0],
+        p[1],
+        fmodf(p[2] + 0.5f * pattern[1], pattern[1]) - 0.5f * pattern[1],
     };
 }
 
 vec3 repeatXY(const vec2& pattern, const vec3& p) {
     return {
-        fmodf(p.x + 0.5f * pattern.x, pattern.x) - 0.5f * pattern.x,
-        fmodf(p.y + 0.5f * pattern.y, pattern.y) - 0.5f * pattern.y,
-        p.z,
+        fmodf(p[0] + 0.5f * pattern[0], pattern[0]) - 0.5f * pattern[0],
+        fmodf(p[1] + 0.5f * pattern[1], pattern[1]) - 0.5f * pattern[1],
+        p[2],
     };
 }
 
@@ -42,7 +41,7 @@ vec3 repeatLim(float c, float l, const vec3& p) {
 }
 
 float displacement(const vec3& p) {
-    return sin(20*p.x)*sin(20*p.y)*sin(20*p.z);
+    return sin(20*p[0])*sin(20*p[1])*sin(20*p[2]);
 }
 
 #endif
