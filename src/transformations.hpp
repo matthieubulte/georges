@@ -20,6 +20,14 @@ vec3 symXZ(const vec3& p) {
     return q;
 }
 
+vec3 repeatX(float pattern, const vec3& p) {
+    return {
+        fmodf(p[0] + 0.5f * pattern, pattern) - 0.5f * pattern,
+        p[1],
+        p[2],
+    };
+}
+
 vec3 repeatXZ(const vec2& pattern, const vec3& p) {
     return {
         fmodf(p[0] + 0.5f * pattern[0], pattern[0]) - 0.5f * pattern[0],

@@ -13,6 +13,9 @@ class Screen {
     bool initialize(const char* window_title);
     void put_pixel(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b);
     void render();
+    void sleep(unsigned int ms);
+
+    std::array<unsigned char, screen_width * screen_height * 4> framebuffer {};
 
     private:
     bool initialized;
@@ -21,7 +24,7 @@ class Screen {
     SDL_Renderer *renderer;
     SDL_Texture *frame_texture;
 
-    std::array<unsigned char, screen_width * screen_height * 4> framebuffer {};
+    
 };
 
 template<size_t screen_width, size_t screen_height>
@@ -69,6 +72,11 @@ void Screen<screen_width, screen_height>::render() {
     SDL_UpdateTexture (this->frame_texture, NULL, this->framebuffer.data(), screen_width * 4);
     SDL_RenderCopy(this->renderer, this->frame_texture, NULL, NULL);
     SDL_RenderPresent(this->renderer);
+}
+
+template<size_t screen_width, size_t screen_height>
+void Screen<screen_width, screen_height>::sleep(unsigned int ms) {
+    SDL_Delay(ms);
 }
 
 #endif

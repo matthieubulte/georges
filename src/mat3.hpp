@@ -38,11 +38,11 @@ vec3 operator*(const vec3& v, const mat3& m) {
     return transpose(m)*v;
 }
 
-void print_mat3(const mat3& m) {
-    using namespace std;
-    cout << m[0] << ' ' << m[1] << ' ' << m[2] << endl
-         << m[3] << ' ' << m[4] << ' ' << m[5] << endl
-         << m[6] << ' ' << m[7] << ' ' << m[8] << endl;
+std::ostream& operator<<(std::ostream& o, const mat3& m) {
+    o << m[0] << ' ' << m[1] << ' ' << m[2] << std::endl
+      << m[3] << ' ' << m[4] << ' ' << m[5] << std::endl
+      << m[6] << ' ' << m[7] << ' ' << m[8] << std::endl;
+    return o;
 }
 
 #endif
