@@ -279,6 +279,7 @@ int main() {
     float time = 0;
     
     Screen<dimx, dimy> screen;
+    PerformanceMonitor perf(2);
     controles_state state;
     
     if (!screen.initialize("")) {
@@ -305,9 +306,9 @@ int main() {
 
         vec3 walk_dir = vec3(0, 0, (state.down - state.up) * walk_speed);
         camera_pos = camera_pos + rot * walk_dir;
-        
 
         screen.render();
+        perf.tick();
         screen.sleep(100);
         frame_number++;
         time += 100.f / 1000.0f;

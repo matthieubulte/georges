@@ -15,16 +15,18 @@ class Screen {
     void render();
     void sleep(unsigned int ms);
 
-    std::array<unsigned char, screen_width * screen_height * 4> framebuffer {};
-
     private:
+    unsigned char& red(std::array<unsigned char, screen_width * screen_height * 4>& target, const unsigned int x, const unsigned int y);
+    unsigned char& green(std::array<unsigned char, screen_width * screen_height * 4>& target, const unsigned int x, const unsigned int y);
+    unsigned char& blue(std::array<unsigned char, screen_width * screen_height * 4>& target, const unsigned int x, const unsigned int y);
+
     bool initialized;
     
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *frame_texture;
 
-    
+    std::array<unsigned char, screen_width * screen_height * 4> framebuffer {};
 };
 
 template<size_t screen_width, size_t screen_height>
@@ -61,10 +63,27 @@ bool Screen<screen_width, screen_height>::initialize(const char* window_title) {
 
 template<size_t screen_width, size_t screen_height>
 inline void Screen<screen_width, screen_height>::put_pixel(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b) {
+    this->red(this->framebuffer, x, y) = r;
+    this->green(this->framebuffer, x, y) = g;
+    this->blue(this->framebuffer, x, y) = b;
+}
+
+template<size_t screen_width, size_t screen_height>
+inline unsigned char& Screen<screen_width, screen_height>::red(std::array<unsigned char, screen_width * screen_height * 4>& target, const unsigned int x, const unsigned int y) {
     const unsigned int offset = (screen_width * 4 * y) + x * 4;
-    this->framebuffer[offset] = b;
-    this->framebuffer[offset+1] = g;
-    this->framebuffer[offset+2] = r;
+    return target[offset+2];
+}
+
+template<size_t screen_width, size_t screen_height>
+inline unsigned char& Screen<screen_width, screen_height>::green(std::array<unsigned char, screen_width * screen_height * 4>& target, const unsigned int x, const unsigned int y) {
+    const unsigned int offset = (screen_width * 4 * y) + x * 4;
+    return target[offset+1];
+}
+
+template<size_t screen_width, size_t screen_height>
+inline unsigned char& Screen<screen_width, screen_height>::blue(std::array<unsigned char, screen_width * screen_height * 4>& target, const unsigned int x, const unsigned int y) {
+    const unsigned int offset = (screen_width * 4 * y) + x * 4;
+    return target[offset];
 }
 
 template<size_t screen_width, size_t screen_height>
