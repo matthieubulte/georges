@@ -3,6 +3,11 @@
 
 #include "vec.hpp"
 
+float smin(float a, float b, float k) {
+    float h = fmax(k-abs(a-b), 0.0f)/k;
+    return fmin(a, b) - h*h*k*(1.0/6.0);
+}
+
 vec3 translate(const vec3& d, const vec3& p) {
     return p - d;
 }

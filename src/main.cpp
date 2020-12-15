@@ -47,45 +47,63 @@ vec2 dist_field(const float t, const vec3& p) {
     float d = max_dist;
     
     // floor
-    pt = translate(vec3(0, 0.075*sin(p[0])*sin(p[2]), 0), p);
-    d = dist_plane(vec3(0,1,0), 0, pt);
-    vec2 rp = vec2(d, /* texture */ 1);
-
-    // column
-    pt = translate(vec3(0,.75,-1.), p);
-    pt = repeatX(2, pt);
-    d = dist_box(vec3(1, 0.2, 1), pt);
-
-    float crad = 0.15*(1 + 0.1*sin(atan2f(pt[0], pt[2])*20.0f));
-    crad -= 0.05*pt[1];
-    crad += 0.1*pow(0.1 + 0.1*sin(pt[1]*20), 0.01);
-
-    d = len(vec2(pt[0], pt[2])) - crad;
-    d = max(d, pt[1]-1.1f);
-    d = max(d, -pt[1]-5.0f);
-
-    vec2 rb = vec2(d, /* texture */ 3);
-
-    // boxes
-    q = translate(vec3(0, 1.1, 0), pt);
-    d = dist_box(vec3(0.35, 0.05, 0.35), q);
-    vec2 rbb = vec2(d, /* texture */ 3);
-
-    q = translate(vec3(0, -0.7, 0), pt);
-    d = dist_box(vec3(0.35, 0.05, 0.35), q);
-    rbb = dist_union(rbb, vec2(d, /* texture */ 3));
+    // pt = translate(vec3(0, 0.075*sin(p[0])*sin(p[2]), 0), p);
+    d = dist_plane(vec3(0,1,0), 0, p);
 
     // sphere
-    float st = 3.0f;
-    float y = fmod(t/st, 2.0f)-2*fmod(floorf(t/st), 2.0f)*fmod(t/st,1.0f);
-    y = 1 + (2.0f*fmod(floorf(t/st/2),2.0f)-1)*y;
-
-    pt = translate(vec3(-1.5,.5+y/2,-0.5), p);
-    float rad = .5;
-    d = dist_sphere(rad, pt);
-    vec2 rs = vec2(d, /* texture */ 2);
+    float s = fmod(t/2, 2);
     
-    return dist_union(rp, rb, dist_union(rbb, rs));
+    pt = symX(p);
+    vec3 vp = vec3(fmod(abs(p[0]),1.5)-.75,p[1],fmod(p[2]+.75,1.5)-.75);
+    vec2 id = vec2(floor(p[0]/1.5), floor(p[2]/1.5 + .5));
+
+    float fid = id[0]*11.1 + id[1]*31.7;
+    float fy = fmod(fid*1.312+t*0.05, 1.0f);
+    float y = 4.0*fy - 1.0f;
+    float rad = fy*(1.0-fy);
+
+    float d2 = dist_sphere(rad, vp-vec3(0.5,y,0.0));
+    d2 -= 0.03*(sin(18.0*p[0])+sin(18.0*p[1])+sin(18.0*p[2]));
+    d2 *= 0.6;
+    d2 = fmin(d2,2.0);
+    
+    float ds = smin(d, d2, 0.32);
+
+
+    vec2 rs = vec2(smin(d, ds, 0.5), /* texture */ 2);
+    // pt = translate(bpos, p);
+    
+    
+    // float rad = 0.1 + (1 - clamp(s, 0.0f, 1.0f)) / 4;
+    // float ds = dist_sphere(rad, pt);
+    
+    // vec2 rs = vec2(smin(d, ds, 0.5), /* texture */ 2);
+
+    // column
+    // pt = translate(vec3(0,.75,-1.), p);
+    // pt = repeatX(2, pt);
+    // d = dist_box(vec3(1, 0.2, 1), pt);
+
+    // float crad = 0.15*(1 + 0.1*sin(atan2f(pt[0], pt[2])*20.0f));
+    // crad -= 0.05*pt[1];
+    // crad += 0.1*pow(0.1 + 0.1*sin(pt[1]*20), 0.01);
+
+    // d = len(vec2(pt[0], pt[2])) - crad;
+    // d = max(d, pt[1]-1.1f);
+    // d = max(d, -pt[1]-5.0f);
+
+    // vec2 rb = vec2(d, /* texture */ 3);
+
+    // boxes
+    // q = translate(vec3(0, 1.1, 0), pt);
+    // d = dist_box(vec3(0.35, 0.05, 0.35), q);
+    // vec2 rbb = vec2(d, /* texture */ 3);
+
+    // q = translate(vec3(0, -0.7, 0), pt);
+    // d = dist_box(vec3(0.35, 0.05, 0.35), q);
+    // rbb = dist_union(rbb, vec2(d, /* texture */ 3));
+    
+    return rs; //dist_union(rp, rb, dist_union(rbb, rs));
 }
 
 vec3 normal(const float t, const vec3& p) {
@@ -142,7 +160,7 @@ float shadow(float time, const vec3& p, const vec3& n, int k) {
     float res = 1.0;
     vec2 dres;
 
-    for (int s = 0; s < 64 || t < 6.0; s++) {
+    for (int s = 0; s < 16 || t < 6.0; s++) {
         dres = dist_field(time, p + t*light_dir);
         h = dres[0];
         res = min(res, k*max(0.0f, h)/t);
@@ -217,19 +235,24 @@ inline bool is_in_range(unsigned int x, unsigned int y) {
 
 template<unsigned int dimx, unsigned int dimy, unsigned int min_offset, unsigned int max_offset>
 void splash_color(Screen<dimx, dimy>* screen, const std::vector<bool>& r_buffer, unsigned int x, unsigned int y, const color& c) {
-    screen->put_pixel(x, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+    unsigned char r = std::get<0>(c), g = std::get<1>(c), b = std::get<2>(c);
+    
+    // this doesn't remove the artifacts since being splashed on would change the pixel :/
+    if (!screen->has_changed(x, y, r, g, b)) return;
 
+    screen->put_pixel(x, y, r, g, b);
+    
     if (is_in_range<dimx, dimy, min_offset, max_offset>(x-1, y) && !r_buffer[(dimx * y) + x-1 - min_offset])
-        screen->put_pixel(x-1, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+        screen->put_pixel(x-1, y, r, g, b);
     
     if (is_in_range<dimx, dimy, min_offset, max_offset>(x, y-1) && !r_buffer[(dimx * (y-1)) + x - min_offset])
-        screen->put_pixel(x, y-1, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+        screen->put_pixel(x, y-1, r, g, b);
     
     if (is_in_range<dimx, dimy, min_offset, max_offset>(x+1, y) && !r_buffer[(dimx * y) + x + 1 - min_offset])
-        screen->put_pixel(x+1, y, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+        screen->put_pixel(x+1, y, r, g, b);
 
     if (is_in_range<dimx, dimy, min_offset, max_offset>(x, y+1) && !r_buffer[(dimx * (y+1)) + x - min_offset])
-        screen->put_pixel(x, y+1, std::get<0>(c), std::get<1>(c), std::get<2>(c));
+        screen->put_pixel(x, y+1, r, g, b);
 }
 
 template<unsigned int dimx, unsigned int dimy, unsigned int min_offset, unsigned int max_offset>
@@ -273,8 +296,8 @@ int main() {
     const float turn_speed = 0.05f;
     
     unsigned long frame_number = 0;
-    vec3 camera_pos = vec3(0.0, 1.0, 4.5);
-    float view_rot = 0.0f;
+    vec3 camera_pos = vec3(0.0, 1.0, 0.0);
+    float view_rot = M_PI;
     mat3 rot = rotationY(view_rot);
     float time = 0;
     
@@ -282,10 +305,8 @@ int main() {
     PerformanceMonitor perf(2);
     controles_state state;
     
-    if (!screen.initialize("")) {
-        return -1;
-    }
-
+    if (!screen.initialize("")) return -1;
+    
     constexpr unsigned int num_threads = 8;
     constexpr unsigned int pixels_per_thread = dimx * dimy / num_threads;
 

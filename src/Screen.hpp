@@ -12,6 +12,8 @@ class Screen {
 
     bool initialize(const char* window_title);
     void put_pixel(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b);
+    bool has_changed(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b);
+
     void render();
     void sleep(unsigned int ms);
 
@@ -66,6 +68,13 @@ inline void Screen<screen_width, screen_height>::put_pixel(const unsigned int x,
     this->red(this->framebuffer, x, y) = r;
     this->green(this->framebuffer, x, y) = g;
     this->blue(this->framebuffer, x, y) = b;
+}
+
+template<size_t screen_width, size_t screen_height>
+inline bool Screen<screen_width, screen_height>::has_changed(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b) {
+    return !(this->red(this->framebuffer, x, y) == r
+          && this->green(this->framebuffer, x, y) == g
+          && this->blue(this->framebuffer, x, y) == b);
 }
 
 template<size_t screen_width, size_t screen_height>
