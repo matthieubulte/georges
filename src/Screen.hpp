@@ -4,6 +4,8 @@
 #include <SDL2/SDL.h>
 #include <array>
 
+#include "types.hpp"
+
 template<size_t screen_width, size_t screen_height>
 class Screen {
     public:
@@ -11,8 +13,7 @@ class Screen {
     ~Screen();
 
     bool initialize(const char* window_title);
-    void put_pixel(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b);
-    bool has_changed(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b);
+    void put_pixel(const unsigned int x, const unsigned int y, const color& color);
 
     void render();
     void sleep(unsigned int ms);
@@ -64,17 +65,10 @@ bool Screen<screen_width, screen_height>::initialize(const char* window_title) {
 }
 
 template<size_t screen_width, size_t screen_height>
-inline void Screen<screen_width, screen_height>::put_pixel(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b) {
-    this->red(this->framebuffer, x, y) = r;
-    this->green(this->framebuffer, x, y) = g;
-    this->blue(this->framebuffer, x, y) = b;
-}
-
-template<size_t screen_width, size_t screen_height>
-inline bool Screen<screen_width, screen_height>::has_changed(const unsigned int x, const unsigned int y, unsigned char r, unsigned char g, unsigned char b) {
-    return !(this->red(this->framebuffer, x, y) == r
-          && this->green(this->framebuffer, x, y) == g
-          && this->blue(this->framebuffer, x, y) == b);
+inline void Screen<screen_width, screen_height>::put_pixel(const unsigned int x, const unsigned int y, const color& color) {
+    this->red(this->framebuffer, x, y) = std::get<0>(color);
+    this->green(this->framebuffer, x, y) = std::get<1>(color);
+    this->blue(this->framebuffer, x, y) = std::get<2>(color);
 }
 
 template<size_t screen_width, size_t screen_height>

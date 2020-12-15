@@ -8,12 +8,18 @@
 template<size_t N>
 struct vec {
     std::array<float, N> data;
+
     float& operator[](int i) {
         return this->data[i];
     }
     const float& operator[](int i) const {
         return this->data[i];
-    } 
+    }
+    vec<N>& operator=(const float val) const {
+        vec<N> res;
+        std::fill(std::begin(res.data), std::end(res.data), val);
+        return res;
+    }
 };
 
 struct vec2 : vec<2> {
@@ -121,16 +127,37 @@ vec<N> apply(const vec<N>& v, float (&func) (float)) {
 }
 
 template<size_t N>
-vec<N> vmax(const vec<N>& v, float x) { 
+vec<N> max(const vec<N>& v, float x) { 
     vec<N> res;
     for (auto i = 0; i < N; i++) res[i] = std::max(v[i], x);
     return res;
 }
 
 template<size_t N>
-vec<N> vclamp(const vec<N>& v, float lo, float hi) { 
+vec<N> min(const vec<N>& v, float x) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = std::min(v[i], x);
+    return res;
+}
+
+template<size_t N>
+vec<N> min(const vec<N>& v, const vec<N>& w) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = std::min(v[i], w[i]);
+    return res;
+}
+
+template<size_t N>
+vec<N> clamp(const vec<N>& v, float lo, float hi) { 
     vec<N> res;
     for (auto i = 0; i < N; i++) res[i] = std::clamp(v[i], lo, hi);
+    return res;
+}
+
+template<size_t N>
+vec<N> abs(const vec<N>& v) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = abs(v[i]);
     return res;
 }
 
@@ -156,6 +183,14 @@ vec<N> normalize(const vec<N>& v) {
     return v/vlen;
 }
 
+
+template<size_t N>
+vec<N> sqrt(const vec<N>& v) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = sqrtf(v[i]);
+    return res;
+}
+
 template<size_t N>
 vec<N> interp(const vec<N>& v, const vec<N>& w, float a) { 
     vec<N> res;
@@ -174,6 +209,13 @@ template<size_t N>
 vec<N> pow(float a, const vec<N>& v) { 
     vec<N> res;
     for (auto i = 0; i < N; i++) res[i] = pow(a, v[i]);
+    return res;
+}
+
+template<size_t N>
+vec<N> lt(const vec<N>& v, const vec<N>& w) {
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = v[i] < w[i] ? 1.0f : 0.0f;
     return res;
 }
 

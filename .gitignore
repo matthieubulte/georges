@@ -2,3 +2,4 @@
 *.dSYM
 *.out
 *.gch
+.DS_Store

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "vec.hpp"
+#include "vecpack.hpp"
 
 typedef struct mat3 {
     float data[9];
@@ -34,9 +35,15 @@ vec3 operator*(const mat3& m, const vec3& v) {
             m[6]*v[0] + m[7]*v[1] + m[8]*v[2]};
 }
 
-vec3 operator*(const vec3& v, const mat3& m) { 
-    return transpose(m)*v;
+template<size_t N_vecs>
+vecpack<N_vecs, 3> operator*(const mat3& m, const vecpack<N_vecs, 3>& v) {
+    vecpack<N_vecs, 3> res;
+    res[0] = m[0]*v[0] + m[1]*v[1] + m[2]*v[2];
+    res[1] = m[3]*v[0] + m[4]*v[1] + m[5]*v[2];
+    res[2] = m[6]*v[0] + m[7]*v[1] + m[8]*v[2]; 
+    return res;
 }
+
 
 std::ostream& operator<<(std::ostream& o, const mat3& m) {
     o << m[0] << ' ' << m[1] << ' ' << m[2] << std::endl
