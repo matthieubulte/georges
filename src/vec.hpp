@@ -262,6 +262,13 @@ vec<N> max(const vec<N>& v, float x) {
 }
 
 template<size_t N>
+vec<N> max(const vec<N>& v, const vec<N>& w) { 
+    vec<N> res;
+    for (auto i = 0; i < N; i++) res[i] = std::max(v[i], w[i]);
+    return res;
+}
+
+template<size_t N>
 vec<N> min(const vec<N>& v, float x) { 
     vec<N> res;
     for (auto i = 0; i < N; i++) res[i] = std::min(v[i], x);

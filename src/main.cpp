@@ -20,16 +20,14 @@
 #include "performance_monitor.hpp"
 
 
-#define ENABLE_PIXEL_CACHE false
-
 #define DEF_RENDER_THREAD(i) \
     Painter<dimx, dimy, i*pixels_per_thread, (i+1)*pixels_per_thread, ENABLE_PIXEL_CACHE> painter##i(&screen, &shader);\
-    std::thread t##i(painter_thread<dimx, dimy, i*pixels_per_thread, (i+1)*pixels_per_thread, ENABLE_PIXEL_CACHE>, &painter##i, &state.quit);
+    std::thread t##i(painter_thread<dimx, dimy, i*pixels_per_thread, (i+1)*pixels_per_thread>, &painter##i, &state.quit);
 
-template<size_t screen_width, size_t screen_height, size_t min_offset, size_t max_offset, bool cache>
-void painter_thread(Painter<screen_width, screen_height, min_offset, max_offset, cache>* painter, const bool* quit) {
+template<size_t screen_width, size_t screen_height, size_t min_offset, size_t max_offset>
+void painter_thread(Painter<screen_width, screen_height, min_offset, max_offset>* painter, const bool* quit) {
     while (!*quit) {
-        painter->paint(10000);
+        painter->paint_simd(1000);
     }
 }
 
@@ -52,14 +50,15 @@ int main() {
     Screen<dimx, dimy> screen;
     Camera camera(45.0f, dim, vec3(0.0, 1.0, 0.0), M_PI);
     Shader shader(&shader_config, &camera);
-    Painter<dimx, dimy, 0, dimx * dimy, false> painter(&screen, &shader);
+    Painter<dimx, dimy, 0, dimx * dimy> painter(&screen, &shader);
     PerformanceMonitor perf(2);
     controles_state state;
     
     if (!screen.initialize("")) return -1;
     
-    // constexpr size_t num_threads = 8;
-    // constexpr size_t pixels_per_thread = dimx * dimy / num_threads;
+    constexpr size_t num_threads = 8;
+    constexpr size_t pixels_per_thread = dimx * dimy / num_threads;
+
     // some template magic could probably help me run this loop sort of statically
     // otherwise the template parameter is not proper
     // DEF_RENDER_THREAD(0); DEF_RENDER_THREAD(1);
@@ -80,7 +79,8 @@ int main() {
         // painter.paint(8000);
         shader_config.time += perf.tock();
 
-        screen.render();    
+        screen.render();
+        // screen.sleep(18);
     }
 
     // t0.join(); t1.join(); t2.join(); t3.join();

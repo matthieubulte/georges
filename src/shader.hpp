@@ -112,32 +112,6 @@ color Shader::render_pixel(const size_t x, const size_t y) const {
 }
 
 vec2 Shader::dist_field(const vec3& p) const {
-    // vec3 pt, q;
-    // float d = config->max_dist;
-    
-    // // floor
-    // d = dist_plane(vec3(0,1,0), 0, p);
-
-    // // sphere
-    // float s = fmod(config->time/2, 2);
-    
-    // pt = symX(p);
-    // vec3 vp = vec3(fmod(abs(p[0]),1.5)-.75,p[1],fmod(p[2]+.75,1.5)-.75);
-    // vec2 id = vec2(floor(p[0]/1.5), floor(p[2]/1.5 + .5));
-
-    // float fid = id[0]*11.1 + id[1]*31.7;
-    // float fy = fmod(fid*1.312+config->time*0.05, 1.0f);
-    // float y = 4.0*fy - 1.0f;
-    // float rad = fy*(1.0-fy);
-
-    // float d2 = dist_sphere(rad, vp-vec3(0.5,y,0.0));
-    // d2 -= 0.03*(sin(18.0*p[0])+sin(18.0*p[1])+sin(18.0*p[2]));
-    // d2 *= 0.6;
-    // d2 = fmin(d2,2.0);
-    
-    // float ds = smin(d, d2, 0.32);
-    // return vec2(smin(d, ds, 0.5), /* texture */ 2);
-
     vec3 q;
     float d = 10000.0f;
     
@@ -145,7 +119,7 @@ vec2 Shader::dist_field(const vec3& p) const {
     d = dist_plane(vec3(0,1,0), 0, p);
 
     // sphere
-    q = p - vec3(0.0f, 1.0f, 0.0f);
+    q = p - vec3(0.0f, 1.0f, 3.0f);
     float d2 = dist_sphere(0.5f, q);
     float ds = smin(d, d2, 0.32);
 
@@ -160,7 +134,7 @@ vecpack<8, 2> Shader::dist_field_simd(const vecpack<8, 3>& p) const {
     d = dist_plane(vec3(0,1,0), 0, p);
     
     // sphere
-    q = p - vec3(0.0f, 1.0f, 0.0f);
+    q = p - vec3(0.0f, 1.0f, 3.0f);
     d2 = dist_sphere(0.5f, q);
     ds = smin(d, d2, 0.32);
     
@@ -235,9 +209,9 @@ vecpack<8, 2> Shader::march_simd(const vecpack<8, 3>& directions) const {
         texture = res[1];
 
         collided = distance < 0.0005 * t;
-        col_mask = col_mask * collided;
+        col_mask = max(col_mask, collided);
 
-        t = t + distance * col_mask;
+        t = t + distance * (1.0 - col_mask);
 
         if (sum(col_mask) == 8) break;
     }
