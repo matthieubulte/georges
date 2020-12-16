@@ -31,6 +31,34 @@ class Painter {
         }
     }
 
+    void paint_simd(size_t num_packs) {
+        size_t local_offset, offset, x, y;
+
+        for (auto i = 0; i < num_packs; i++) {
+            vecpack<8, 2> pixels;
+            std::array<size_t, 8 * 2> coordinates;
+
+            for (auto i = 0; i < 8; i++) {
+                local_offset = rand() % num_pixels_covered;
+                offset = min_offset + local_offset;
+
+                x = offset % screen_width;
+                y = screen_height - 1 - (offset - x) / screen_width;
+
+                coordinates[i*2] = x;
+                coordinates[i*2+1] = y;
+
+                pixels[0][i] = x;
+                pixels[1][i] = y;
+            }            
+
+            std::array<color, 8> c = shader->render_pixel_simd(pixels);
+            for (auto i = 0; i < 8; i++) {
+                splash_color(coordinates[i*2], coordinates[i*2+1], c[i]);
+            }
+        }
+    }
+
     private:
     void reset_write_cache() {
         std::fill(write_cache.begin(), write_cache.end(), false);

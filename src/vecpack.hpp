@@ -30,6 +30,15 @@ vecpack<N_vecs, 3> vecpack3(float x, float y, float z) {
 }
 
 template<size_t N_vecs>
+vecpack<N_vecs, 3> vecpack3(vec3 v) {
+    vecpack<N_vecs, 3> res;
+    res[0] = v[0];
+    res[1] = v[1];
+    res[2] = v[2];
+    return res;
+}
+
+template<size_t N_vecs>
 vecpack<N_vecs, 2> vecpack2(float x, float y) {
     vecpack<N_vecs, 2> res;
     res[0] = x;
@@ -159,6 +168,38 @@ vecpack<N_vecs, vec_N> operator/(const vecpack<N_vecs, vec_N>& lhs, const vecpac
 }
 
 template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> operator/(const vecpack<N_vecs, vec_N>& lhs, const vec<vec_N>& rhs) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++) res[i] = lhs[i] / rhs[i];
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> operator/(const vec<vec_N>& lhs, const vecpack<N_vecs, vec_N>& rhs) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++) res[i] = lhs[i] / rhs[i];
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> operator/(const vec<N_vecs>& lhs, const vecpack<N_vecs, vec_N>& rhs) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++)
+        for (auto j = 0; j < N_vecs; j++)
+            res[i][j] = lhs[j] / rhs[i][j];
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> operator/(const vecpack<N_vecs, vec_N>& lhs, const vec<N_vecs>& rhs) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++)
+        for (auto j = 0; j < N_vecs; j++)
+            res[i][j] = lhs[i][j] / rhs[i];
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> operator/(float lhs, const vecpack<N_vecs, vec_N>& rhs) { 
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++) res[i] = lhs / rhs[i];
@@ -200,22 +241,22 @@ vec<N_vecs> len(const vecpack<N_vecs, vec_N>& v) {
 
 template<size_t N_vecs, size_t vec_N>
 vec<N_vecs> dot(const vecpack<N_vecs, vec_N>& lhs, const vecpack<N_vecs, vec_N>& rhs) { 
-    vec<N_vecs> res; res = res * 0.0f;
-    for (auto i = 0; i < vec_N; i++) res += lhs[i] * rhs[i];
+    vec<N_vecs> res(0.0f);
+    for (auto i = 0; i < vec_N; i++) res = res + lhs[i] * rhs[i];
     return res;
 }
 
 template<size_t N_vecs, size_t vec_N>
 vec<N_vecs> dot(const vecpack<N_vecs, vec_N>& lhs, const vec<vec_N>& rhs) { 
-    vec<N_vecs> res; res = res * 0.0f;
-    for (auto i = 0; i < vec_N; i++) res += lhs[i] * rhs[i];
+    vec<N_vecs> res(0.0f);
+    for (auto i = 0; i < vec_N; i++) res = res + lhs[i] * rhs[i];
     return res;
 }
 
 template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> normalize(const vecpack<N_vecs, vec_N>& v) { 
-    float vlen = len(v);
-    if (vlen == 0) return v;
+    vec<N_vecs> vlen = len(v);
+    // if (vlen == 0) return v; TODO
     return v/vlen;
 }
 

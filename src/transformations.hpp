@@ -10,7 +10,7 @@ float smin(float a, float b, float k) {
 
 template<size_t N>
 vec<N> smin(const vec<N>& a, const vec<N>& b, float k) {
-    float h = max(k-abs(a-b), 0.0f)/k;
+    vec<N> h = max(k-abs(a-b), 0.0f)/k;
     return min(a, b) - h*h*k*(1.0/6.0);
 }
 

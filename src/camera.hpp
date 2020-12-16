@@ -30,6 +30,17 @@ class Camera {
         return rotation_matrix * dir;
     }
 
+    vecpack<8, 3> get_ray_dir_simd(const vecpack<8, 2>& pixels) const {
+        vecpack<8, 2> xy = pixels - screen_dim * 0.5f;
+
+        float cot_half_fov = tan((90.0 - fov * 0.5) * M_PI / 180.0f);
+        float z = screen_dim[1] * 0.5 * cot_half_fov;
+        
+        vecpack<8, 3> dir = normalize(vecpack<8, 3>({ xy[0], xy[1], vec<8>(-z) }));
+
+        return rotation_matrix * dir;
+    }
+
     vec3 position;
 
     private:
