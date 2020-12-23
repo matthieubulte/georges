@@ -195,7 +195,7 @@ vecpack<N_vecs, vec_N> operator/(const vecpack<N_vecs, vec_N>& lhs, const vec<N_
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++)
         for (auto j = 0; j < N_vecs; j++)
-            res[i][j] = lhs[i][j] / rhs[i];
+            res[i][j] = lhs[i][j] / rhs[j];
     return res;
 }
 

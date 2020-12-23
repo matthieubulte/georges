@@ -58,11 +58,10 @@ class Painter {
     private:    
     void splash_color(size_t x, size_t y, const color& c) {
         screen->put_pixel(x, y, c);
-        
-        // if (is_covered(x-1, y) && !is_cached(x-1, y)) screen->put_pixel(x-1, y, c);
-        // if (is_covered(x, y-1) && !is_cached(x, y-1)) screen->put_pixel(x, y-1, c);
-        // if (is_covered(x+1, y) && !is_cached(x+1, y)) screen->put_pixel(x+1, y, c);
-        // if (is_covered(x, y+1) && !is_cached(x, y+1)) screen->put_pixel(x, y+1, c);
+        if (is_covered(x-1, y)) screen->put_pixel(x-1, y, c);
+        if (is_covered(x, y-1)) screen->put_pixel(x, y-1, c);
+        if (is_covered(x+1, y)) screen->put_pixel(x+1, y, c);
+        if (is_covered(x, y+1)) screen->put_pixel(x, y+1, c);
     }
 
     inline bool is_covered(size_t x, size_t y) const {
