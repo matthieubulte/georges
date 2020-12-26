@@ -20,6 +20,8 @@
 #include "performance_monitor.hpp"
 
 
+#define SIMD
+
 #define DEF_RENDER_THREAD(i) \
     Painter<dimx, dimy, i*pixels_per_thread, (i+1)*pixels_per_thread> painter##i(&screen, &shader);\
     std::thread t##i(painter_thread<dimx, dimy, i*pixels_per_thread, (i+1)*pixels_per_thread>, &painter##i, &state.quit);
@@ -54,10 +56,20 @@ int main() {
     PerformanceMonitor perf(2);
     controles_state state;
     
-    if (!screen.initialize("")) return -1;
+    #ifdef SIMD
+    const char* title = "SIMD implementation";
+    #else
+    const char* title = "Reference implementation";
+    #endif
+
+    if (!screen.initialize(title)) return -1;
+
+    std::cout << "RUNNING: " << title << std::endl;
     
     constexpr size_t num_threads = 8;
     constexpr size_t pixels_per_thread = dimx * dimy / num_threads;
+
+    
 
     // some template magic could probably help me run this loop sort of statically
     // otherwise the template parameter is not proper
@@ -75,8 +87,13 @@ int main() {
         camera.move_forward(walk_dir);
 
         perf.tick();
+
+        #ifdef SIMD
         painter.paint_simd(1000);
-        // painter.paint(8000);
+        #else
+        painter.paint(8000);
+        #endif
+        
         shader_config.time += perf.tock();
 
         screen.render();

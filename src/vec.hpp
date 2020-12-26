@@ -8,6 +8,8 @@
 #include <array>
 #include <immintrin.h> 
 
+#include "_mm256_exp_ps.hpp"
+
 template<size_t N>
 struct vec {
     std::array<float, N> data;
@@ -41,6 +43,10 @@ struct vec3 : vec<3> {
     constexpr vec3(const vec<2>& xy, float z) : vec<3>({xy[0], xy[1], z}) {}
 };
 
+template<size_t N>
+vec<N> operator-(const vec<N>& v) {
+    return -1.0f * v;
+}
 
 template<size_t N>
 vec<N> operator==(const vec<N>& lhs, const vec<N>& rhs) {
@@ -428,6 +434,25 @@ vec<8> max(const vec<8>& lhs, const vec<8>& rhs) {
     const __m256 a = _mm256_loadu_ps(lhs.data.data());
     const __m256 b = _mm256_loadu_ps(rhs.data.data());
     const __m256 c = _mm256_max_ps(a, b);
+    vec<8> res;
+    memcpy(res.data.data(), &c, sizeof(c));
+    return res;
+}
+
+vec<8> max(const vec<8>& v, float x) { 
+    ALIGN(32) float barr[8] = {x, x, x, x, x, x, x, x};
+
+    const __m256 a = _mm256_load_ps(barr);
+    const __m256 b = _mm256_loadu_ps(v.data.data());
+    const __m256 c = _mm256_max_ps(a, b);
+    vec<8> res;
+    memcpy(res.data.data(), &c, sizeof(c));
+    return res;
+}
+
+vec<8> exp(const vec<8>& v) { 
+    const __m256 a = _mm256_loadu_ps(v.data.data());
+    const __m256 c = _mm256_exp_ps(a);
     vec<8> res;
     memcpy(res.data.data(), &c, sizeof(c));
     return res;

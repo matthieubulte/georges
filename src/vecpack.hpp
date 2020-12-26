@@ -10,6 +10,14 @@ template<size_t N_vecs, size_t vec_N>
 struct vecpack {
     std::array<vec<N_vecs>, vec_N> data;
 
+    constexpr vecpack() {}
+
+    constexpr vecpack(std::array<vec<N_vecs>, vec_N> data) : data(data) {}
+
+    constexpr vecpack(vec<vec_N> v) {
+        for (auto i = 0; i < vec_N; i++) this->data[i] = v[i];
+    }
+
     // access a specific column
     vec<N_vecs>& operator[](int i) {
         return this->data[i];
@@ -26,15 +34,6 @@ vecpack<N_vecs, 3> vecpack3(float x, float y, float z) {
     res[0] = x;
     res[1] = y;
     res[2] = z;
-    return res;
-}
-
-template<size_t N_vecs>
-vecpack<N_vecs, 3> vecpack3(vec3 v) {
-    vecpack<N_vecs, 3> res;
-    res[0] = v[0];
-    res[1] = v[1];
-    res[2] = v[2];
     return res;
 }
 
@@ -170,6 +169,13 @@ vecpack<N_vecs, vec_N> operator*(const vecpack<N_vecs, vec_N>& lhs, float rhs) {
 }
 
 template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> operator*(const vec<N_vecs>& lhs, vec<vec_N> rhs) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++) res[i] = lhs * rhs[i];
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> operator/(const vecpack<N_vecs, vec_N>& lhs, const vecpack<N_vecs, vec_N>& rhs) { 
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++) res[i] = lhs[i] / rhs[i];
@@ -288,6 +294,26 @@ vecpack<N_vecs, vec_N> pow(float a, const vecpack<N_vecs, vec_N>& v) {
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++) res[i] = pow(a, v[i]);
     return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> pow(const vec<N_vecs>& lhs, const vec<vec_N>& rhs) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++) res[i] = pow(lhs, rhs[i]);
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> interp(const vec<vec_N>& l, const vec<vec_N>& r, vec<N_vecs> a) {
+    vecpack<N_vecs, vec_N> lpack(l);
+    vecpack<N_vecs, vec_N> rpack(r);
+
+    return a * lpack + (1.0f - a) * rpack;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> interp(const vecpack<N_vecs, vec_N>& l, const vecpack<N_vecs, vec_N>& r, vec<N_vecs> a) {
+    return a * l + (1.0f - a) * r;
 }
 
 #endif
