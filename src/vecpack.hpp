@@ -147,6 +147,15 @@ vecpack<N_vecs, vec_N> operator*(const vec<N_vecs>& lhs, const vecpack<N_vecs, v
 }
 
 template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> operator*(const vecpack<N_vecs, vec_N>& lhs, const vec<N_vecs>& rhs) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++)
+        for (auto j = 0; j < N_vecs; j++)
+            res[i][j] = rhs[j] * lhs[i][j];
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> operator*(float lhs, const vecpack<N_vecs, vec_N>& rhs) { 
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++) res[i] = lhs * rhs[i];

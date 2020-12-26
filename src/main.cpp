@@ -61,10 +61,10 @@ int main() {
 
     // some template magic could probably help me run this loop sort of statically
     // otherwise the template parameter is not proper
-    DEF_RENDER_THREAD(0); DEF_RENDER_THREAD(1);
-    DEF_RENDER_THREAD(2); DEF_RENDER_THREAD(3);
-    DEF_RENDER_THREAD(4); DEF_RENDER_THREAD(5);
-    DEF_RENDER_THREAD(6); DEF_RENDER_THREAD(7);
+    // DEF_RENDER_THREAD(0); DEF_RENDER_THREAD(1);
+    // DEF_RENDER_THREAD(2); DEF_RENDER_THREAD(3);
+    // DEF_RENDER_THREAD(4); DEF_RENDER_THREAD(5);
+    // DEF_RENDER_THREAD(6); DEF_RENDER_THREAD(7);
 
     while(!state.quit) {
         poll_state(state);
@@ -75,16 +75,16 @@ int main() {
         camera.move_forward(walk_dir);
 
         perf.tick();
-        // painter.paint_simd(1000);
+        painter.paint_simd(1000);
         // painter.paint(8000);
         shader_config.time += perf.tock();
 
         screen.render();
-        screen.sleep(18);
+        // screen.sleep(18);
     }
 
-    t0.join(); t1.join(); t2.join(); t3.join();
-    t4.join(); t5.join(); t6.join(); t7.join();
+    // t0.join(); t1.join(); t2.join(); t3.join();
+    // t4.join(); t5.join(); t6.join(); t7.join();
     
     return EXIT_SUCCESS;
 }

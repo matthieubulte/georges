@@ -39,7 +39,11 @@ class Shader {
     vecpack<8, 2> march_simd(const vecpack<8, 3>& directions) const;
 
     vec3 normal(const vec3& p) const;
+    vecpack<8, 3> normal_simd(const vecpack<8, 3>& p) const;
+
     float ambient(const vec3& p, const vec3& n) const;
+    vec<8> ambient_simd(const vecpack<8, 3>& p, const vecpack<8, 3>& n) const;
+
     float shadow(const vec3& p, const vec3& n, int k) const;
     vec3 apply_fog(const vec3& original_color, float distance, const vec3& ray_dir, const vec3& sun_dir) const;
 
@@ -56,6 +60,12 @@ std::array<color, 8> Shader::render_pixel_simd(const vecpack<8, 2>& pixels) cons
     vec<8> hit_texture = res[1];
     
     vecpack<8, 3> fcolors = 255.0f * texture_simd(hit_time, hit_texture);
+
+    vecpack<8, 3> p = camera->position + hit_time * dir;
+    vecpack<8, 3> n = normal_simd(p);
+
+    vec<8> amb = ambient_simd(p, n);
+    fcolors = amb * fcolors;
 
     for (auto i = 0; i < 8; i++) {
         colors[i] = std::make_tuple(
@@ -81,7 +91,7 @@ color Shader::render_pixel(const size_t x, const size_t y) const {
         color = config->background_color;
     } else {
         vec3 p = camera->position + hit_time * dir;
-        // vec3 n = normal(p);
+        vec3 n = normal(p);
 
         // float sha = std::clamp(shadow(p+n*0.1, n, 32), 0.0f, 1.0f);
         // float sun = std::clamp(dot(n, config->light_dir), 0.0f, 1.0f);
@@ -95,7 +105,7 @@ color Shader::render_pixel(const size_t x, const size_t y) const {
         // lin = lin + ind * vec3(0.40,0.28,0.20);
 
         // color = lin * texture((int)hit_texture, p);    
-        color = texture((int)hit_texture, p);
+        color = ambient(p, n) * texture((int)hit_texture, p);
     }
 
     // color = apply_fog(color, hit_time, dir, config->light_dir);
@@ -156,8 +166,24 @@ vec3 Shader::normal(const vec3& p) const {
                      d3*dist_field(p+d3)[0] + d4*dist_field(p+d4)[0]);
 }
 
+vecpack<8, 3> Shader::normal_simd(const vecpack<8, 3>& p) const {
+    float d = 0.5773*0.0001;
+    vecpack<8, 3> d1 = vecpack3<8>(d,-d,-d);
+    vecpack<8, 3> d2 = vecpack3<8>(-d,-d,d);
+    vecpack<8, 3> d3 = vecpack3<8>(-d,d,-d);
+    vecpack<8, 3> d4 = vecpack3<8>(d,d,d);
+
+    return normalize(d1*dist_field_simd(p+d1)[0] + d2*dist_field_simd(p+d2)[0] + 
+                     d3*dist_field_simd(p+d3)[0] + d4*dist_field_simd(p+d4)[0]);
+}
+
 float Shader::ambient(const vec3& p, const vec3& n) const {
     return std::clamp(dot(n, config->light_dir), 0.0f, 1.0f);
+}
+
+vec<8> Shader::ambient_simd(const vecpack<8, 3>& p, const vecpack<8, 3>& n) const {
+    vec<8> dots = dot(n, config->light_dir);
+    return clamp(dots, 0.0f, 1.0f);
 }
 
 vec3 Shader::texture(int texture_id, const vec3& pos) const {
