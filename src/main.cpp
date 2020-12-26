@@ -13,6 +13,7 @@
 #include "vecpack.hpp"
 
 #include "screen.hpp"
+#include "scenes/simple_scene.hpp"
 #include "camera.hpp"
 #include "painter.hpp"
 #include "shader.hpp"
@@ -49,9 +50,11 @@ int main() {
     shader_config.background_color = vec3(0.4,0.56,0.97);
     shader_config.time = 0.0f;
 
+    SimpleScene scene;
+
     Screen<dimx, dimy> screen;
     Camera camera(45.0f, dim, vec3(0.0, 1.0, 0.0), M_PI);
-    Shader shader(&shader_config, &camera);
+    Shader shader(&shader_config, &camera, &scene);
     Painter<dimx, dimy, 0, dimx * dimy> painter(&screen, &shader);
     PerformanceMonitor perf(2);
     controles_state state;
