@@ -44,7 +44,9 @@ class Shader {
     float ambient(const vec3& p, const vec3& n) const;
     vec<8> ambient_simd(const vecpack<8, 3>& p, const vecpack<8, 3>& n) const;
 
-    float shadow(const vec3& p, const vec3& n, int k) const;
+    float shadow(const vec3& p, int k) const;
+    vec<8> shadow_simd(const vecpack<8, 3>& p, int k) const;
+
     vec3 apply_fog(const vec3& original_color, float distance, const vec3& ray_dir, const vec3& sun_dir) const;
 
     const ShaderConfig* config;
@@ -65,7 +67,9 @@ std::array<color, 8> Shader::render_pixel_simd(const vecpack<8, 2>& pixels) cons
     vecpack<8, 3> n = normal_simd(p);
 
     vec<8> amb = ambient_simd(p, n);
-    fcolors = amb * fcolors;
+    vec<8> sha = shadow_simd(p + 0.1f * n, 32);
+
+    fcolors = amb * sha * fcolors;
 
     for (auto i = 0; i < 8; i++) {
         colors[i] = std::make_tuple(
@@ -93,7 +97,9 @@ color Shader::render_pixel(const size_t x, const size_t y) const {
         vec3 p = camera->position + hit_time * dir;
         vec3 n = normal(p);
 
-        // float sha = std::clamp(shadow(p+n*0.1, n, 32), 0.0f, 1.0f);
+        float sha = std::clamp(shadow(p+n*0.1f, 32), 0.0f, 1.0f);
+        float amb = ambient(p, n);
+
         // float sun = std::clamp(dot(n, config->light_dir), 0.0f, 1.0f);
         // float sky = std::clamp(0.5f + 0.5f*n[1], 0.0f, 1.0f);
         // float ind = std::clamp(dot(n, normalize(config->light_dir*vec3(-1.0,0.0,-1.0))), 0.0f, 1.0f);
@@ -105,7 +111,7 @@ color Shader::render_pixel(const size_t x, const size_t y) const {
         // lin = lin + ind * vec3(0.40,0.28,0.20);
 
         // color = lin * texture((int)hit_texture, p);    
-        color = ambient(p, n) * texture((int)hit_texture, p);
+        color =  sha * amb * texture((int)hit_texture, p);
     }
 
     // color = apply_fog(color, hit_time, dir, config->light_dir);
@@ -249,7 +255,7 @@ vecpack<8, 2> Shader::march_simd(const vecpack<8, 3>& directions) const {
     return vecpack<8, 2>({t, texture});
 }
 
-float Shader::shadow(const vec3& p, const vec3& n, int k) const {
+float Shader::shadow(const vec3& p, int k) const {
     float t = 0.01;
     float h;
     float res = 1.0;
@@ -268,6 +274,29 @@ float Shader::shadow(const vec3& p, const vec3& n, int k) const {
     }
     
     return res;
+}
+
+vec<8> Shader::shadow_simd(const vecpack<8, 3>& p, int k) const {
+    vecpack<8, 3> dir = vecpack3<8>(config->light_dir);
+    vec<8> distance, texture, t(1.0f), collided(0.0f), col_mask(0.0f), res(1.0f);
+
+
+    for (int s = 0; s < 16; s++) {
+        vecpack<8, 2> dres = dist_field_simd(p + t * dir);
+        distance = dres[0];
+
+        res = min(res, k*max(0.0f, distance)/t);
+
+        collided = distance < 0.0001;
+        col_mask = max(col_mask, collided);
+
+        t = t + (1.0 - col_mask) * clamp(distance, 0.01f, 0.5f);
+
+        if (sum(col_mask) == 8) break;
+    }
+
+    // res = 0.0f if collision, else res
+    return (1.0f - col_mask) * res;
 }
 
 vec3 Shader::apply_fog(const vec3& original_color, float distance, const vec3& ray_dir, const vec3& sun_dir) const {
