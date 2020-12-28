@@ -1,7 +1,7 @@
 #ifndef TRANSFORMATIONS_H
 #define TRANSFORMATIONS_H
 
-#include "vec.hpp"
+#include "linalg/vec.hpp"
 
 float smin(float a, float b, float k) {
     float h = fmax(k-abs(a-b), 0.0f)/k;

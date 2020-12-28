@@ -1,19 +1,19 @@
 #ifndef VEC_HPP
 #define VEC_HPP
 
-#define ALIGN(n) __attribute__ ((aligned(n)))
+#define ALIGN __attribute__ ((aligned(32)))
 
 #include <iostream>
 #include <cmath>
 #include <array>
-#include <immintrin.h> 
-
-#include "_mm256_exp_ps.hpp"
 
 template<size_t N>
 struct vec {
-    std::array<float, N> data;
-    constexpr vec(std::array<float, N> data) : data(data) {}
+    ALIGN std::array<float, N> data;
+
+    constexpr vec(const std::array<float, N>& odata) {
+        std::copy(std::begin(odata), std::end(odata), std::begin(this->data));
+    }
     constexpr vec() {
         std::fill(std::begin(this->data), std::end(this->data), 0.0f);
     }
@@ -42,6 +42,116 @@ struct vec3 : vec<3> {
     constexpr vec3(const vec<3>& v) : vec<3>({v[0], v[1], v[2]}) {}
     constexpr vec3(const vec<2>& xy, float z) : vec<3>({xy[0], xy[1], z}) {}
 };
+
+
+// SIMD Implementation
+#include <immintrin.h> 
+#include "_mm256_exp_ps.hpp"
+
+#define LOAD(name, vec) const __m256 name = _mm256_load_ps(vec.data.data());
+#define LOADC(name, x) \
+    ALIGN float xarr[8] = {x, x, x, x, x, x, x, x};\
+    const __m256 name = _mm256_load_ps(xarr);
+
+#define STORE(op, res) \
+    const __m256 c = op;\
+    _mm256_store_ps(res.data.data(), c);
+
+#define MONO_OP(op, v, res) \
+    LOAD(a, v);\
+    STORE(op(a), res);
+
+#define BI_OP(op, lhs, rhs, res) \
+    LOAD(a, lhs);\
+    LOAD(b, rhs);\
+    STORE(op(a, b), res);
+
+
+template<size_t N>
+struct vec;
+
+vec<8> operator+(const vec<8>& lhs, const vec<8>& rhs) { 
+    vec<8> res;
+    BI_OP(_mm256_add_ps, lhs, rhs, res)
+    return res;
+}
+
+vec<8> operator-(const vec<8>& lhs, const vec<8>& rhs) { 
+    vec<8> res;
+    BI_OP(_mm256_sub_ps, lhs, rhs, res)
+    return res;
+}
+
+vec<8> operator-(const vec<8>& lhs, const float x) { 
+    LOAD(a, lhs);
+    LOADC(b, x);
+
+    vec<8> res;
+    STORE(_mm256_sub_ps(a, b), res)
+    return res;
+}
+
+vec<8> operator-(const float x, const vec<8>& rhs) { 
+    LOADC(a, x);
+    LOAD(b, rhs);
+    vec<8> res;
+    STORE(_mm256_sub_ps(a, b), res);
+    return res;
+}
+
+vec<8> operator*(const vec<8>& lhs, const vec<8>& rhs) { 
+    vec<8> res;
+    BI_OP(_mm256_mul_ps, lhs, rhs, res)
+    return res;
+}
+
+vec<8> operator/(const vec<8>& lhs, const vec<8>& rhs) { 
+    vec<8> res;
+    BI_OP(_mm256_div_ps, lhs, rhs, res)
+    return res;
+}
+
+float dot(const vec<8>& lhs, const vec<8>& rhs) { 
+    LOAD(a, lhs);
+    LOAD(b, rhs);
+    const __m256 c = _mm256_dp_ps(a, b, 0xff);
+    return ((float*)&c)[0];
+}
+
+vec<8> sqrt(const vec<8>& v) { 
+    vec<8> res;
+    MONO_OP(_mm256_sqrt_ps, v, res);
+    return res;
+}
+
+vec<8> min(const vec<8>& lhs, const vec<8>& rhs) { 
+    vec<8> res;
+    BI_OP(_mm256_min_ps, lhs, rhs, res);
+    return res;
+}
+
+vec<8> max(const vec<8>& lhs, const vec<8>& rhs) { 
+    vec<8> res;
+    BI_OP(_mm256_max_ps, lhs, rhs, res);
+    return res;
+}
+
+vec<8> max(const vec<8>& v, float x) { 
+    LOAD(a, v);
+    LOADC(b, x);
+    vec<8> res;
+    STORE(_mm256_max_ps(a, b), res);
+    return res;
+}
+
+vec<8> exp(const vec<8>& v) {
+    vec<8> res;
+    MONO_OP(_mm256_exp_ps, v, res);
+    return res;
+}
+
+// General Implementation
+
 
 template<size_t N>
 vec<N> operator-(const vec<N>& v) {
@@ -337,124 +447,6 @@ template<size_t N>
 vec<N> pow(float a, const vec<N>& v) { 
     vec<N> res;
     for (auto i = 0; i < N; i++) res[i] = pow(a, v[i]);
-    return res;
-}
-
-template<size_t N>
-vec<N> lt(const vec<N>& v, const vec<N>& w) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = v[i] < w[i] ? 1.0f : 0.0f;
-    return res;
-}
-
-vec<8> operator+(const vec<8>& lhs, const vec<8>& rhs) { 
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_loadu_ps(rhs.data.data());
-    const __m256 c = _mm256_add_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> operator-(const vec<8>& lhs, const vec<8>& rhs) { 
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_loadu_ps(rhs.data.data());
-    const __m256 c = _mm256_sub_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> operator-(const vec<8>& lhs, const float x) { 
-    ALIGN(32) float barr[8] = {x, x, x, x, x, x, x, x};
-
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_load_ps(barr);
-    const __m256 c = _mm256_sub_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> operator-(const float x, const vec<8>& lhs) { 
-    ALIGN(32) float barr[8] = {x, x, x, x, x, x, x, x};
-
-    const __m256 a = _mm256_load_ps(barr);
-    const __m256 b = _mm256_loadu_ps(lhs.data.data());
-    const __m256 c = _mm256_sub_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> operator*(const vec<8>& lhs, const vec<8>& rhs) { 
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_loadu_ps(rhs.data.data());
-    const __m256 c = _mm256_mul_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> operator/(const vec<8>& lhs, const vec<8>& rhs) { 
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_loadu_ps(rhs.data.data());
-    const __m256 c = _mm256_div_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-float dot(const vec<8>& lhs, const vec<8>& rhs) { 
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_loadu_ps(rhs.data.data());
-    const __m256 c = _mm256_dp_ps(a, b, 0xff);
-    return ((float*)&c)[0];
-}
-
-vec<8> sqrt(const vec<8>& v) { 
-    const __m256 a = _mm256_loadu_ps(v.data.data());
-    const __m256 c = _mm256_sqrt_ps(a);
-
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> min(const vec<8>& lhs, const vec<8>& rhs) { 
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_loadu_ps(rhs.data.data());
-    const __m256 c = _mm256_min_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> max(const vec<8>& lhs, const vec<8>& rhs) { 
-    const __m256 a = _mm256_loadu_ps(lhs.data.data());
-    const __m256 b = _mm256_loadu_ps(rhs.data.data());
-    const __m256 c = _mm256_max_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> max(const vec<8>& v, float x) { 
-    ALIGN(32) float barr[8] = {x, x, x, x, x, x, x, x};
-
-    const __m256 a = _mm256_load_ps(barr);
-    const __m256 b = _mm256_loadu_ps(v.data.data());
-    const __m256 c = _mm256_max_ps(a, b);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
-    return res;
-}
-
-vec<8> exp(const vec<8>& v) { 
-    const __m256 a = _mm256_loadu_ps(v.data.data());
-    const __m256 c = _mm256_exp_ps(a);
-    vec<8> res;
-    memcpy(res.data.data(), &c, sizeof(c));
     return res;
 }
 

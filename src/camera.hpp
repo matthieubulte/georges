@@ -1,8 +1,8 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "vec.hpp"
-#include "mat3.hpp"
+#include "linalg/vec.hpp"
+#include "linalg/mat3.hpp"
 
 class Camera {
     public:
@@ -42,11 +42,12 @@ class Camera {
     }
 
     vec3 position;
+    float xz_rotation;
 
     private:
     vec2 screen_dim;
     float fov;
-    float xz_rotation;
+    
     mat3 rotation_matrix;
 
 };

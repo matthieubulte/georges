@@ -3,8 +3,8 @@
 
 #include <cmath>
 
-#include "vec.hpp"
-#include "vecpack.hpp"
+#include "linalg/vec.hpp"
+#include "linalg/vecpack.hpp"
 
 template<size_t N_vecs>
 vec<N_vecs> dist_sphere(float r, const vecpack<N_vecs, 3>& p) {
