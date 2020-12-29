@@ -140,18 +140,13 @@ template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> operator*(const vec<N_vecs>& lhs, const vecpack<N_vecs, vec_N>& rhs) { 
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++)
-        for (auto j = 0; j < N_vecs; j++)
-            res[i][j] = lhs[j] * rhs[i][j];
+        res[i] = lhs * rhs[i];
     return res;
 }
 
 template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> operator*(const vecpack<N_vecs, vec_N>& lhs, const vec<N_vecs>& rhs) { 
-    vecpack<N_vecs, vec_N> res;
-    for (auto i = 0; i < vec_N; i++)
-        for (auto j = 0; j < N_vecs; j++)
-            res[i][j] = rhs[j] * lhs[i][j];
-    return res;
+    return rhs * lhs;
 }
 
 template<size_t N_vecs, size_t vec_N>
@@ -209,8 +204,7 @@ template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> operator/(const vecpack<N_vecs, vec_N>& lhs, const vec<N_vecs>& rhs) { 
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++)
-        for (auto j = 0; j < N_vecs; j++)
-            res[i][j] = lhs[i][j] / rhs[j];
+        res[i] = lhs[i] / rhs;
     return res;
 }
 
@@ -236,14 +230,21 @@ vecpack<N_vecs, vec_N> apply(const vecpack<N_vecs, vec_N>& v, float (&func) (flo
 }
 
 template<size_t N_vecs, size_t vec_N>
-vecpack<N_vecs, vec_N> vmax(const vecpack<N_vecs, vec_N>& v, float x) { 
+vecpack<N_vecs, vec_N> max(const vecpack<N_vecs, vec_N>& v, float x) { 
     vecpack<N_vecs, vec_N> res;
-    for (auto i = 0; i < vec_N; i++) res[i] = std::max(v[i], x);
+    for (auto i = 0; i < vec_N; i++) res[i] = max(v[i], x);
     return res;
 }
 
 template<size_t N_vecs, size_t vec_N>
-vecpack<N_vecs, vec_N> vclamp(const vecpack<N_vecs, vec_N>& v, float lo, float hi) { 
+vecpack<N_vecs, vec_N> min(const vecpack<N_vecs, vec_N>& v, float x) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++) res[i] = min(v[i], x);
+    return res;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> clamp(const vecpack<N_vecs, vec_N>& v, float lo, float hi) { 
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++) res[i] = std::clamp(v[i], lo, hi);
     return res;
@@ -273,6 +274,13 @@ vecpack<N_vecs, vec_N> normalize(const vecpack<N_vecs, vec_N>& v) {
     vec<N_vecs> vlen = len(v);
     // if (vlen == 0) return v; TODO
     return v/vlen;
+}
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> abs(const vecpack<N_vecs, vec_N>& v) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++) res[i] = abs(v[i]);
+    return res;
 }
 
 template<size_t N_vecs, size_t vec_N>

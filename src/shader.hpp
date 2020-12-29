@@ -82,11 +82,15 @@ std::array<color, 8> Shader::render_pixel_simd(const vecpack<8, 2>& pixels) cons
 
     fcolors = 255.0f * fcolors;
 
+    std::array<float, 8> r = fcolors[0],
+                         g = fcolors[1],
+                         b = fcolors[2];
+
     for (auto i = 0; i < 8; i++) {
         colors[i] = std::make_tuple(
-            (unsigned char)(int)fcolors[0][i],
-            (unsigned char)(int)fcolors[1][i],
-            (unsigned char)(int)fcolors[2][i]
+            (unsigned char)(int)r[i],
+            (unsigned char)(int)g[i],
+            (unsigned char)(int)b[i]
         );
     }
     return colors;

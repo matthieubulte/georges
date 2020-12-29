@@ -26,6 +26,10 @@ struct vec {
     const float& operator[](int i) const {
         return this->data[i];
     }
+    vec<N>& operator=(float x) {
+        std::fill(std::begin(this->data), std::end(this->data), x);
+        return *this;
+    }
 };
 
 struct vec2 : vec<2> {
@@ -43,116 +47,134 @@ struct vec3 : vec<3> {
     constexpr vec3(const vec<2>& xy, float z) : vec<3>({xy[0], xy[1], z}) {}
 };
 
-
 // SIMD Implementation
 #include <immintrin.h> 
-#include "_mm256_exp_ps.hpp"
+#include "_mm256_extensions.hpp"
 
-#define LOAD(name, vec) const __m256 name = _mm256_load_ps(vec.data.data());
-#define LOADC(name, x) \
-    ALIGN float xarr[8] = {x, x, x, x, x, x, x, x};\
-    const __m256 name = _mm256_load_ps(xarr);
+template<>
+struct vec<8> {
+    __m256 data;
+    vec<8>() : vec<8>(0.0f) {}
+    vec<8>(__m256 const& x) : data(x) {}
+    vec<8>(float x) {
+        ALIGN float xarr[8] = {x, x, x, x, x, x, x, x};
+        data = _mm256_load_ps(xarr);
+    }
 
-#define STORE(op, res) \
-    const __m256 c = op;\
-    _mm256_store_ps(res.data.data(), c);
+    operator __m256() const {
+        return data;
+    }
 
-#define MONO_OP(op, v, res) \
-    LOAD(a, v);\
-    STORE(op(a), res);
+    operator std::array<float, 8>() const {
+        std::array<float, 8> res;
+        _mm256_store_ps(res.data(), data);
+        return res;
+    }
 
-#define BI_OP(op, lhs, rhs, res) \
-    LOAD(a, lhs);\
-    LOAD(b, rhs);\
-    STORE(op(a, b), res);
+    vec<8>& operator=(__m256 const& x) {
+        data = x;
+        return *this;
+    }
 
+    vec<8>& operator=(float x) {
+        data = _mm256_set1_ps(x);
+        return *this;
+    }
 
-template<size_t N>
-struct vec;
+    vec<8>& operator=(std::array<float, 8> x) {
+        ALIGN float xarr[8];
+        std::copy(std::begin(x), std::end(x), std::begin(xarr));
+        data = _mm256_load_ps(xarr);
+        return *this;
+    }
+};
 
 vec<8> operator+(const vec<8>& lhs, const vec<8>& rhs) { 
-    vec<8> res;
-    BI_OP(_mm256_add_ps, lhs, rhs, res)
-    return res;
+    return _mm256_add_ps(lhs, rhs);
 }
 
 vec<8> operator-(const vec<8>& lhs, const vec<8>& rhs) { 
-    vec<8> res;
-    BI_OP(_mm256_sub_ps, lhs, rhs, res)
-    return res;
-}
-
-vec<8> operator-(const vec<8>& lhs, const float x) { 
-    LOAD(a, lhs);
-    LOADC(b, x);
-
-    vec<8> res;
-    STORE(_mm256_sub_ps(a, b), res)
-    return res;
-}
-
-vec<8> operator-(const float x, const vec<8>& rhs) { 
-    LOADC(a, x);
-    LOAD(b, rhs);
-    vec<8> res;
-    STORE(_mm256_sub_ps(a, b), res);
-    return res;
+    return _mm256_sub_ps(lhs, rhs);
 }
 
 vec<8> operator*(const vec<8>& lhs, const vec<8>& rhs) { 
-    vec<8> res;
-    BI_OP(_mm256_mul_ps, lhs, rhs, res)
-    return res;
+    return _mm256_mul_ps(lhs, rhs);
 }
 
 vec<8> operator/(const vec<8>& lhs, const vec<8>& rhs) { 
-    vec<8> res;
-    BI_OP(_mm256_div_ps, lhs, rhs, res)
-    return res;
+    return _mm256_div_ps(lhs, rhs);
+}
+
+vec<8> operator%(const vec<8>& lhs, const vec<8>& rhs) { 
+    return _mm256_mod_ps(lhs, rhs);
+}
+
+vec<8> operator==(const vec<8>& lhs, const vec<8>& rhs) { 
+    return _mm256_cmp_ps(lhs, rhs, 0);
+}
+
+vec<8> operator<(const vec<8>& lhs, const vec<8>& rhs) { 
+    return _mm256_cmp_ps(lhs, rhs, 1);
+}
+
+vec<8> operator<=(const vec<8>& lhs, const vec<8>& rhs) { 
+    return _mm256_cmp_ps(lhs, rhs, 2);
+}
+
+vec<8> operator>(const vec<8>& lhs, const vec<8>& rhs) { 
+    return rhs < lhs;
+}
+
+vec<8> operator>=(const vec<8>& lhs, const vec<8>& rhs) { 
+    return rhs <= rhs;
 }
 
 float dot(const vec<8>& lhs, const vec<8>& rhs) { 
-    LOAD(a, lhs);
-    LOAD(b, rhs);
-    const __m256 c = _mm256_dp_ps(a, b, 0xff);
+    const __m256 c = _mm256_dp_ps(lhs, rhs, 0xff);
     return ((float*)&c)[0];
 }
 
 vec<8> sqrt(const vec<8>& v) { 
-    vec<8> res;
-    MONO_OP(_mm256_sqrt_ps, v, res);
-    return res;
+    return _mm256_sqrt_ps(v);
 }
 
 vec<8> min(const vec<8>& lhs, const vec<8>& rhs) { 
-    vec<8> res;
-    BI_OP(_mm256_min_ps, lhs, rhs, res);
-    return res;
+    return _mm256_min_ps(lhs, rhs);
+}
+
+vec<8> min(const vec<8>& v, float x) { 
+    return _mm256_min_ps(v, vec<8>(x));
 }
 
 vec<8> max(const vec<8>& lhs, const vec<8>& rhs) { 
-    vec<8> res;
-    BI_OP(_mm256_max_ps, lhs, rhs, res);
-    return res;
+    return _mm256_max_ps(lhs, rhs);
 }
 
-vec<8> max(const vec<8>& v, float x) { 
-    LOAD(a, v);
-    LOADC(b, x);
-    vec<8> res;
-    STORE(_mm256_max_ps(a, b), res);
-    return res;
+vec<8> max(const vec<8>& lhs, float rhs) { 
+    return _mm256_max_ps(lhs, vec<8>(rhs));
 }
 
 vec<8> exp(const vec<8>& v) {
-    vec<8> res;
-    MONO_OP(_mm256_exp_ps, v, res);
-    return res;
+    return _mm256_exp_ps(v);
+}
+
+vec<8> abs(const vec<8>& v) {
+    return _mm256_abs_ps(v);
+}
+
+vec<8> pow(const vec<8>& lhs, const vec<8>& rhs) {
+    return _mm256_pow_ps(lhs, rhs);
+}
+
+vec<8> clamp(const vec<8>& v, float lo, float hi) {
+    return max(min(v, hi), lo);
+}
+
+float sum(const vec<8>& v) { 
+    return dot(v, 1.0f);
 }
 
 // General Implementation
-
-
 template<size_t N>
 vec<N> operator-(const vec<N>& v) {
     return -1.0f * v;
@@ -166,18 +188,10 @@ vec<N> operator==(const vec<N>& lhs, const vec<N>& rhs) {
 }
 
 template<size_t N>
-vec<N> operator==(float lhs, const vec<N>& rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs == rhs[i];
-    return res;
-}
+vec<N> operator==(float lhs, const vec<N>& rhs) { return vec<N>(lhs) == rhs; }
 
 template<size_t N>
-vec<N> operator==(const vec<N>& lhs, float rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] == rhs;
-    return res;
-}
+vec<N> operator==(const vec<N>& lhs, float rhs) { return rhs == lhs; }
 
 template<size_t N>
 vec<N> operator<(const vec<N>& lhs, const vec<N>& rhs) {
@@ -187,39 +201,19 @@ vec<N> operator<(const vec<N>& lhs, const vec<N>& rhs) {
 }
 
 template<size_t N>
-vec<N> operator<(float lhs, const vec<N>& rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs < rhs[i];
-    return res;
-}
+vec<N> operator<(float lhs, const vec<N>& rhs) { return vec<N>(lhs) < rhs; }
 
 template<size_t N>
-vec<N> operator<(const vec<N>& lhs, float rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] < rhs;
-    return res;
-}
+vec<N> operator<(const vec<N>& lhs, float rhs) { return lhs < vec<N>(rhs); }
 
 template<size_t N>
-vec<N> operator>(const vec<N>& lhs, const vec<N>& rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] > rhs[i];
-    return res;
-}
+vec<N> operator>(const vec<N>& lhs, const vec<N>& rhs) { return rhs < lhs; }
 
 template<size_t N>
-vec<N> operator>(float lhs, const vec<N>& rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs > rhs[i];
-    return res;
-}
+vec<N> operator>(float lhs, const vec<N>& rhs) { return vec<N>(lhs) > rhs; }
 
 template<size_t N>
-vec<N> operator>(const vec<N>& lhs, float rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] > rhs;
-    return res;
-}
+vec<N> operator>(const vec<N>& lhs, float rhs) { return lhs > vec<N>(rhs); }
 
 template<size_t N>
 vec<N> operator>=(const vec<N>& lhs, const vec<N>& rhs) {
@@ -229,39 +223,19 @@ vec<N> operator>=(const vec<N>& lhs, const vec<N>& rhs) {
 }
 
 template<size_t N>
-vec<N> operator>=(float lhs, const vec<N>& rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs >= rhs[i];
-    return res;
-}
+vec<N> operator>=(float lhs, const vec<N>& rhs) { return vec<N>(lhs) >= rhs; }
 
 template<size_t N>
-vec<N> operator>=(const vec<N>& lhs, float rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] >= rhs;
-    return res;
-}
+vec<N> operator>=(const vec<N>& lhs, float rhs) { return lhs >= vec<N>(rhs); }
 
 template<size_t N>
-vec<N> operator<=(const vec<N>& lhs, const vec<N>& rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] <= rhs[i];
-    return res;
-}
+vec<N> operator<=(const vec<N>& lhs, const vec<N>& rhs) { return rhs >= lhs; }
 
 template<size_t N>
-vec<N> operator<=(float lhs, const vec<N>& rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs <= rhs[i];
-    return res;
-}
+vec<N> operator<=(float lhs, const vec<N>& rhs) { return rhs >= lhs; }
 
 template<size_t N>
-vec<N> operator<=(const vec<N>& lhs, float rhs) {
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] <= rhs;
-    return res;
-}
+vec<N> operator<=(const vec<N>& lhs, float rhs) { return rhs >= lhs; }
 
 template<size_t N>
 vec<N> operator+(const vec<N>& lhs, const vec<N>& rhs) { 
@@ -271,18 +245,10 @@ vec<N> operator+(const vec<N>& lhs, const vec<N>& rhs) {
 }
 
 template<size_t N>
-vec<N> operator+(float lhs, const vec<N>& rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs + rhs[i];
-    return res;
-}
+vec<N> operator+(float lhs, const vec<N>& rhs) { return vec<N>(lhs) + rhs; }
 
 template<size_t N>
-vec<N> operator+(const vec<N>& lhs, float rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] + rhs;
-    return res;
-}
+vec<N> operator+(const vec<N>& lhs, float rhs) { return rhs + lhs; }
 
 template<size_t N>
 vec<N> operator-(const vec<N>& lhs, const vec<N>& rhs) { 
@@ -292,18 +258,10 @@ vec<N> operator-(const vec<N>& lhs, const vec<N>& rhs) {
 }
 
 template<size_t N>
-vec<N> operator-(float lhs, const vec<N>& rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs - rhs[i];
-    return res;
-}
+vec<N> operator-(float lhs, const vec<N>& rhs) { return vec<N>(lhs) - rhs; }
 
 template<size_t N>
-vec<N> operator-(const vec<N>& lhs, float rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] - rhs;
-    return res;
-}
+vec<N> operator-(const vec<N>& lhs, float rhs) { return lhs - vec<N>(rhs); }
 
 template<size_t N>
 vec<N> operator*(const vec<N>& lhs, const vec<N>& rhs) { 
@@ -313,18 +271,11 @@ vec<N> operator*(const vec<N>& lhs, const vec<N>& rhs) {
 }
 
 template<size_t N>
-vec<N> operator*(float lhs, const vec<N>& rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs * rhs[i];
-    return res;
-}
+vec<N> operator*(float lhs, const vec<N>& rhs) { return vec<N>(lhs) * rhs; }
 
 template<size_t N>
-vec<N> operator*(const vec<N>& lhs, float rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] * rhs;
-    return res;
-}
+vec<N> operator*(const vec<N>& lhs, float rhs) { return rhs * lhs; }
+
 
 template<size_t N>
 vec<N> operator/(const vec<N>& lhs, const vec<N>& rhs) { 
@@ -334,30 +285,15 @@ vec<N> operator/(const vec<N>& lhs, const vec<N>& rhs) {
 }
 
 template<size_t N>
-vec<N> operator/(float lhs, const vec<N>& rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs / rhs[i];
-    return res;
-}
+vec<N> operator/(float lhs, const vec<N>& rhs) { return vec<N>(lhs) / rhs; }
 
 template<size_t N>
-vec<N> operator/(const vec<N>& lhs, float rhs) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = lhs[i] / rhs;
-    return res;
-}
+vec<N> operator/(const vec<N>& lhs, float rhs) { return lhs / vec<N>(rhs); }
 
 template<size_t N>
-vec<N> apply(const vec<N>& v, float (&func) (float)) { 
+vec<N> operator%(const vec<N>& lhs, const vec<N>& rhs) {
     vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = func(v[i]);
-    return res;
-}
-
-template<size_t N>
-vec<N> max(const vec<N>& v, float x) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = std::max(v[i], x);
+    for (auto i = 0; i < N; i++) res[i] = fmodf(lhs[i], rhs[i]);
     return res;
 }
 
@@ -369,10 +305,8 @@ vec<N> max(const vec<N>& v, const vec<N>& w) {
 }
 
 template<size_t N>
-vec<N> min(const vec<N>& v, float x) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = std::min(v[i], x);
-    return res;
+vec<N> max(const vec<N>& lhs, float rhs) { 
+    return max(lhs, vec<N>(rhs));
 }
 
 template<size_t N>
@@ -380,6 +314,11 @@ vec<N> min(const vec<N>& v, const vec<N>& w) {
     vec<N> res;
     for (auto i = 0; i < N; i++) res[i] = std::min(v[i], w[i]);
     return res;
+}
+
+template<size_t N>
+vec<N> min(const vec<N>& lhs, float rhs) { 
+    return min(lhs, vec<N>(rhs));
 }
 
 template<size_t N>
@@ -437,17 +376,20 @@ vec<N> interp(const vec<N>& v, const vec<N>& w, float a) {
 }
 
 template<size_t N>
-vec<N> pow(const vec<N>& v, float a) { 
+vec<N> pow(const vec<N>& lhs, vec<N> rhs) { 
     vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = pow(v[i], a);
+    for (auto i = 0; i < N; i++) res[i] = pow(lhs[i], rhs[i]);
     return res;
 }
 
 template<size_t N>
+vec<N> pow(const vec<N>& v, float a) { 
+    return pow(v, vec<N>(a));
+}
+
+template<size_t N>
 vec<N> pow(float a, const vec<N>& v) { 
-    vec<N> res;
-    for (auto i = 0; i < N; i++) res[i] = pow(a, v[i]);
-    return res;
+    return pow(vec<N>(a), v);
 }
 
 template <size_t N>

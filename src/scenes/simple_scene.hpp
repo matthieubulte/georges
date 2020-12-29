@@ -9,8 +9,8 @@ class SimpleScene : public Scene {
     public:
     vec2 dist_field(const float t, const vec3& p) const;
     vecpack<8, 2> dist_field_simd(const float t, const vecpack<8, 3>& p) const;
-    vec3 Shader::texture(int texture_id, const vec3& pos) const;
-    vecpack<8, 3> Shader::texture_simd(const vec<8>& hit_time, const vec<8>& hit_texture) const;
+    vec3 texture(int texture_id, const vec3& pos) const;
+    vecpack<8, 3> texture_simd(const vec<8>& hit_time, const vec<8>& hit_texture) const;
 };
 
 vec2 SimpleScene::dist_field(const float t, const vec3& p) const {

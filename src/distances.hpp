@@ -26,8 +26,15 @@ vec<N_vecs> dist_plane(const vec3& n, float h, const vecpack<N_vecs, 3>& p) {
 }
 
 float dist_box(const vec3& b, const vec3& p) {
-  vec3 q = apply(p, abs) - b;
+  vec3 q = abs(p) - b;
   return len(max(q,0.0f)) + std::min(std::max(q[0],std::max(q[1],q[2])),0.0f);
+}
+
+template<size_t N_vecs>
+vec<N_vecs> dist_box(const vec3& b, const vecpack<N_vecs, 3>& p) {
+  vecpack<N_vecs, 3> q = abs(p) - b;
+  vec<N_vecs> maxdim = max(q[0],max(q[1],q[2]));
+  return len(max(q,0.0f)) + min(maxdim,0.0f);
 }
 
 float dist_torus(const vec2& t, const vec3& p) {

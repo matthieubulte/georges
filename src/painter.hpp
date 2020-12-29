@@ -32,6 +32,7 @@ class Painter {
 
         for (auto i = 0; i < num_packs; i++) {
             vecpack<8, 2> pixels;
+            std::array<float, 8> xs, ys;
             std::array<size_t, 8 * 2> coordinates;
 
             for (auto i = 0; i < 8; i++) {
@@ -44,9 +45,11 @@ class Painter {
                 coordinates[i*2] = x;
                 coordinates[i*2+1] = y;
 
-                pixels[0][i] = x;
-                pixels[1][i] = y;
-            }            
+                xs[i] = x;
+                ys[i] = y;
+            }
+            pixels[0] = xs;
+            pixels[1] = ys;
 
             std::array<color, 8> c = shader->render_pixel_simd(pixels);
             for (auto i = 0; i < 8; i++) {

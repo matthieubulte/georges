@@ -16,64 +16,52 @@ class CoolerScene : public Scene {
 
 vec2 CoolerScene::dist_field(const float t, const vec3& p) const {
     vec3 pt, q;
-    float d = 100000.0f;
+    float d, d2;
     
     // floor
-    pt = translate(vec3(0, 0.075*sin(p[0])*sin(p[2]), 0), p);
-    d = dist_plane(vec3(0,1,0), 0, pt);
-    vec2 rp = vec2(d, /* texture */ 1);
+    d = dist_plane(vec3(0,1,0), 0, p);
 
     // column
-    pt = translate(vec3(0,.75,-1.), p);
-    pt = repeatX(2, pt);
-    d = dist_box(vec3(1, 0.2, 1), pt);
-
-    float crad = 0.15*(1 + 0.1*sin(atan2f(pt[0], pt[2])*20.0f));
-    crad -= 0.05*pt[1];
-    crad += 0.1*pow(0.1 + 0.1*sin(pt[1]*20), 0.01);
-
-    d = len(vec2(pt[0], pt[2])) - crad;
-    d = std::max(d, pt[1]-1.1f);
-    d = std::max(d, -pt[1]-5.0f);
-
-    vec2 rb = vec2(d, /* texture */ 3);
-
-    // boxes
-    q = translate(vec3(0, 1.1, 0), pt);
-    d = dist_box(vec3(0.35, 0.05, 0.35), q);
-    vec2 rbb = vec2(d, /* texture */ 3);
-
-    q = translate(vec3(0, -0.7, 0), pt);
-    d = dist_box(vec3(0.35, 0.05, 0.35), q);
-    rbb = dist_union(rbb, vec2(d, /* texture */ 3));
-
-    // sphere
-    float st = 3.0f;
-    float y = fmod(t/st, 2.0f)-2*fmod(floorf(t/st), 2.0f)*fmod(t/st,1.0f);
-    y = 1 + (2.0f*fmod(floorf(t/st/2),2.0f)-1)*y;
-
-    pt = translate(vec3(-1.5,.5+y/2,-0.5), p);
-    float rad = .5;
-    d = dist_sphere(rad, pt);
-    vec2 rs = vec2(d, /* texture */ 2);
+    pt = p - vec3(0,.75,4.);
+    // pt = repeatX(2, pt);
+    d2 = dist_box(vec3(1, 0.2, 1), pt);
+    d = std::min(d, d2);
     
-    return dist_union(rp, rb, dist_union(rbb, rs));
+    q = p - vec3(0.0f, 1.0f, 3.0f);
+    d2 = dist_sphere(0.5f, q);
+    d = smin(d, d2, 0.32);
+
+    // return dist_union(rp, rb, dist_union(rbb, rs));
+    return vec2(d, 1.0f);
 }
 
 vecpack<8, 2> CoolerScene::dist_field_simd(const float t, const vecpack<8, 3>& p) const {
-    vecpack<8, 3> q;
-    vec<8> d, d2, ds;
+    vecpack<8, 3> pt, q;
+    vec<8> d, d2;
     
     // floor
     d = dist_plane(vec3(0,1,0), 0, p);
     
+    // columns
+    pt = pt - vec3(0,.75,4.);
+    // pt = repeatX<8>(2.0f, pt);
+    d2 = dist_box(vec3(1, 0.2, 1), pt);
+    d = min(d, d2);
+
     // sphere
-    q = p - vec3(0.0f, 1.0f, 3.0f);
-    d2 = dist_sphere(0.5f, q);
-    ds = smin(d, d2, 0.32);
+    // q = p - vec3(0.0f, 1.0f, 3.0f);
+    // d2 = dist_sphere(0.5f, q);
+    // d = smin(d, d2, 0.32);
+
+    // for (auto i = 0; i < 8; i++) {
+    //     if (isnan(d[i])) {
+    //         throw "help";
+    //     };
+    // }
+    
     
     vecpack<8, 2> res;
-    res[0] = ds;
+    res[0] = d;
     res[1] = 1.0f;
 
     return res;

@@ -31,6 +31,15 @@ vec3 symXZ(const vec3& p) {
     return q;
 }
 
+template<size_t N>
+vecpack<N, 3> repeatX(float pattern, const vecpack<N, 3>& p) {
+    return vecpack<N, 3>({
+        (p[0] + 0.5f * pattern) % pattern  - 0.5f * pattern,
+        p[1],
+        p[2],
+    });
+}
+
 vec3 repeatX(float pattern, const vec3& p) {
     return {
         fmodf(p[0] + 0.5f * pattern, pattern) - 0.5f * pattern,
@@ -53,10 +62,6 @@ vec3 repeatXY(const vec2& pattern, const vec3& p) {
         fmodf(p[1] + 0.5f * pattern[1], pattern[1]) - 0.5f * pattern[1],
         p[2],
     };
-}
-
-vec3 repeatLim(float c, float l, const vec3& p) {
-    return p-c*clamp(apply(p/c, roundf),-l,l);
 }
 
 float displacement(const vec3& p) {

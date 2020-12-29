@@ -13,7 +13,7 @@
 #include "linalg/vecpack.hpp"
 
 #include "screen.hpp"
-#include "scenes/cooler_scene.hpp"
+#include "scenes/simple_scene.hpp"
 #include "camera.hpp"
 #include "painter.hpp"
 #include "shader.hpp"
@@ -55,7 +55,7 @@ int main() {
     shader_config.background_color = vec3(0.4,0.56,0.97);
     shader_config.time = 0.0f;
 
-    CoolerScene scene;
+    SimpleScene scene;
 
     Screen<dimx, dimy> screen;
     Camera camera(45.0f, dim, vec3(0.0, 1.0, 0.0), -M_PI);
@@ -76,8 +76,6 @@ int main() {
     
     constexpr size_t num_threads = 8;
     constexpr size_t pixels_per_thread = dimx * dimy / num_threads;
-
-    
 
     // some template magic could probably help me run this loop sort of statically
     // otherwise the template parameter is not proper
