@@ -60,6 +60,11 @@ struct vec<8> {
         ALIGN float xarr[8] = {x, x, x, x, x, x, x, x};
         data = _mm256_load_ps(xarr);
     }
+    vec<8>(std::array<float, 8> x) {
+        ALIGN float xarr[8];
+        std::copy(std::begin(x), std::end(x), std::begin(xarr));
+        data = _mm256_load_ps(xarr);
+    }
 
     operator __m256() const {
         return data;
@@ -109,16 +114,24 @@ vec<8> operator%(const vec<8>& lhs, const vec<8>& rhs) {
     return _mm256_mod_ps(lhs, rhs);
 }
 
-vec<8> operator==(const vec<8>& lhs, const vec<8>& rhs) { 
-    return _mm256_cmp_ps(lhs, rhs, 0);
+vec<8> min(const vec<8>& lhs, const vec<8>& rhs) { 
+    return _mm256_min_ps(lhs, rhs);
+}
+
+vec<8> min(const vec<8>& v, float x) { 
+    return _mm256_min_ps(v, vec<8>(x));
+}
+
+vec<8> operator==(const vec<8>& lhs, const vec<8>& rhs) {
+    return min(_mm256_cmp_ps(lhs, rhs, 0), 1.0f);
 }
 
 vec<8> operator<(const vec<8>& lhs, const vec<8>& rhs) { 
-    return _mm256_cmp_ps(lhs, rhs, 1);
+    return min(_mm256_cmp_ps(lhs, rhs, 1), 1.0f);
 }
 
 vec<8> operator<=(const vec<8>& lhs, const vec<8>& rhs) { 
-    return _mm256_cmp_ps(lhs, rhs, 2);
+    return min(_mm256_cmp_ps(lhs, rhs, 2), 1.0f);
 }
 
 vec<8> operator>(const vec<8>& lhs, const vec<8>& rhs) { 
@@ -126,7 +139,7 @@ vec<8> operator>(const vec<8>& lhs, const vec<8>& rhs) {
 }
 
 vec<8> operator>=(const vec<8>& lhs, const vec<8>& rhs) { 
-    return rhs <= rhs;
+    return rhs <= lhs;
 }
 
 float dot(const vec<8>& lhs, const vec<8>& rhs) { 
@@ -136,14 +149,6 @@ float dot(const vec<8>& lhs, const vec<8>& rhs) {
 
 vec<8> sqrt(const vec<8>& v) { 
     return _mm256_sqrt_ps(v);
-}
-
-vec<8> min(const vec<8>& lhs, const vec<8>& rhs) { 
-    return _mm256_min_ps(lhs, rhs);
-}
-
-vec<8> min(const vec<8>& v, float x) { 
-    return _mm256_min_ps(v, vec<8>(x));
 }
 
 vec<8> max(const vec<8>& lhs, const vec<8>& rhs) { 
@@ -172,6 +177,12 @@ vec<8> clamp(const vec<8>& v, float lo, float hi) {
 
 float sum(const vec<8>& v) { 
     return dot(v, 1.0f);
+}
+
+std::ostream& operator<<(std::ostream& o, const vec<8>& v) {
+    std::array<float, 8> data = v;
+    copy(data.cbegin(), data.cend(), std::ostream_iterator<float>(o, " "));
+    return o;
 }
 
 // General Implementation

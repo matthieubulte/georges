@@ -57,7 +57,6 @@ std::array<color, 8> Shader::render_pixel_simd(const vecpack<8, 2>& pixels) cons
     vec<8> hit_time = res[0];
     vec<8> hit_texture = res[1];
     vec<8> col_mask = hit_time >= 0;
-    
     vecpack<8, 3> fcolors = scene->texture_simd(hit_time, hit_texture);
 
     vecpack<8, 3> p = camera->position + hit_time * dir;
