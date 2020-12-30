@@ -324,4 +324,13 @@ vecpack<N_vecs, vec_N> interp(const vecpack<N_vecs, vec_N>& l, const vecpack<N_v
     return a * l + (1.0f - a) * r;
 }
 
+template<size_t N_vecs, size_t vec_N>
+std::ostream& operator<<(std::ostream& o, const vecpack<N_vecs, vec_N>& v) {
+    for (auto i = 0; i < vec_N; i++) {
+        o << i << ". " << v[i];
+        if (i + 1 < N_vecs) o << std::endl;
+    }
+    return o;
+}
+
 #endif

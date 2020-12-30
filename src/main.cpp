@@ -14,6 +14,7 @@
 
 #include "screen.hpp"
 #include "scenes/simple_scene.hpp"
+#include "scenes/cooler_scene.hpp"
 #include "camera.hpp"
 #include "painter.hpp"
 #include "shader.hpp"
@@ -55,7 +56,7 @@ int main() {
     shader_config.background_color = vec3(0.4,0.56,0.97);
     shader_config.time = 0.0f;
 
-    SimpleScene scene;
+    CoolerScene scene;
 
     Screen<dimx, dimy> screen;
     Camera camera(45.0f, dim, vec3(0.0, 1.0, 0.0), -M_PI);
@@ -85,66 +86,6 @@ int main() {
     DEF_RENDER_THREAD(4); DEF_RENDER_THREAD(5);
     DEF_RENDER_THREAD(6); DEF_RENDER_THREAD(7);
     #endif
-
-
-    // vec<8> arr({ 1.0, -1.0, -1.0, 0.0, 1.0, -1.0, -1.0, 0.0 });
-    // vec<8> mask = arr <= 0.0f;
-    // std::cout << mask << std::endl;
-
-    // size_t x, y, offset, local_offset, num_pixels_covered=dimx*dimy;
-    // std::array<float, 8> xs, ys;
-    // std::array<color, 8> ref_colors, simd_colors;    
-
-    // for (auto i = 0; i < 8; i++) {
-    //     local_offset = rand() % (num_pixels_covered);
-    //     offset = local_offset;
-
-    //     x = offset % dimx;
-    //     y = (offset - x) / dimx;
-
-    //     xs[i] = x;
-    //     ys[i] = y;
-        
-    //     ref_colors[i] = shader.render_pixel(x, y);
-    // }
-
-    // vecpack<8, 2> pixels;
-    // pixels[0] = xs; pixels[1] = ys;
-
-    // vecpack<8, 3> dir = camera.get_ray_dir_simd(pixels);
-    // std::array<float, 8> dirx = dir[0];
-    // std::array<float, 8> diry = dir[1];
-    // std::array<float, 8> dirz = dir[2];
-    // for (auto i = 0; i < 8; i++) {
-    //     vec3 dir = camera.get_ray_dir(vec2(xs[i], ys[i]));
-
-    //     bool c = dirx[i] != dir[0]
-    //           || diry[i] != dir[1]
-    //           || dirz[i] != dir[2];
-
-    //     if (c) {
-    //         std::cout << "P: " << xs[i] << " " << ys[i] << std::endl;
-    //         std::cout << "REF: " << dir << std::endl;
-    //         std::cout << "SIMD: " << vec3(dirx[i], diry[i], dirz[i]) << std::endl;
-    //         break;
-    //     }
-    // }
-
-    
-    // simd_colors = shader.render_pixel_simd(pixels);
-    
-
-    // for (auto i = 0; i < 8; i++) {
-    //     bool c = std::get<0>(simd_colors[i]) != std::get<0>(ref_colors[i])
-    //         || std::get<1>(simd_colors[i]) != std::get<1>(ref_colors[i])
-    //         || std::get<2>(simd_colors[i]) != std::get<2>(ref_colors[i]);
-    //     if (c) {
-    //         std::cout << "P: " << xs[i] << " " << ys[i] 
-    //                   << "\tREF: " << (int)std::get<0>(ref_colors[i]) << " " << (int)std::get<1>(ref_colors[i]) << " " << (int)std::get<2>(ref_colors[i])
-    //                   << "\tSIMD: " << (int)std::get<0>(simd_colors[i]) << " " << (int)std::get<1>(simd_colors[i]) << " " << (int)std::get<2>(simd_colors[i]) << std::endl;
-    //     }
-    // }
-
 
     while(!state.quit) {
         poll_state(state);

@@ -57,8 +57,7 @@ struct vec<8> {
     vec<8>() : vec<8>(0.0f) {}
     vec<8>(__m256 const& x) : data(x) {}
     vec<8>(float x) {
-        ALIGN float xarr[8] = {x, x, x, x, x, x, x, x};
-        data = _mm256_load_ps(xarr);
+        data = _mm256_set1_ps(x);
     }
     vec<8>(std::array<float, 8> x) {
         ALIGN float xarr[8];
@@ -123,15 +122,18 @@ vec<8> min(const vec<8>& v, float x) {
 }
 
 vec<8> operator==(const vec<8>& lhs, const vec<8>& rhs) {
-    return min(_mm256_cmp_ps(lhs, rhs, 0), 1.0f);
+    __m256 ones = _mm256_set1_ps(1.0f);
+    return _mm256_and_ps(_mm256_cmp_ps(lhs, rhs, 0), ones);
 }
 
 vec<8> operator<(const vec<8>& lhs, const vec<8>& rhs) { 
-    return min(_mm256_cmp_ps(lhs, rhs, 1), 1.0f);
+    __m256 ones = _mm256_set1_ps(1.0f);
+    return _mm256_and_ps(_mm256_cmp_ps(lhs, rhs, 1), ones);
 }
 
 vec<8> operator<=(const vec<8>& lhs, const vec<8>& rhs) { 
-    return min(_mm256_cmp_ps(lhs, rhs, 2), 1.0f);
+    __m256 ones = _mm256_set1_ps(1.0f);
+    return _mm256_and_ps(_mm256_cmp_ps(lhs, rhs, 2), ones);
 }
 
 vec<8> operator>(const vec<8>& lhs, const vec<8>& rhs) { 

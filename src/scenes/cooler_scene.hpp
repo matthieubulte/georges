@@ -1,6 +1,6 @@
 
-#ifndef SIMPLE_SCENE_HPP
-#define SIMPLE_SCENE_HPP
+#ifndef COOLER_SCENE_HPP
+#define COOLER_SCENE_HPP
 
 #include "../transformations.hpp"
 #include "../distances.hpp"
@@ -23,7 +23,6 @@ vec2 CoolerScene::dist_field(const float t, const vec3& p) const {
 
     // column
     pt = p - vec3(0,.75,4.);
-    // pt = repeatX(2, pt);
     d2 = dist_box(vec3(1, 0.2, 1), pt);
     d = std::min(d, d2);
     
@@ -31,7 +30,6 @@ vec2 CoolerScene::dist_field(const float t, const vec3& p) const {
     d2 = dist_sphere(0.5f, q);
     d = smin(d, d2, 0.32);
 
-    // return dist_union(rp, rb, dist_union(rbb, rs));
     return vec2(d, 1.0f);
 }
 
@@ -43,23 +41,15 @@ vecpack<8, 2> CoolerScene::dist_field_simd(const float t, const vecpack<8, 3>& p
     d = dist_plane(vec3(0,1,0), 0, p);
     
     // columns
-    pt = pt - vec3(0,.75,4.);
-    // pt = repeatX<8>(2.0f, pt);
+    pt = p - vec3(0, .75, 3.);
     d2 = dist_box(vec3(1, 0.2, 1), pt);
     d = min(d, d2);
 
     // sphere
-    // q = p - vec3(0.0f, 1.0f, 3.0f);
-    // d2 = dist_sphere(0.5f, q);
-    // d = smin(d, d2, 0.32);
-
-    // for (auto i = 0; i < 8; i++) {
-    //     if (isnan(d[i])) {
-    //         throw "help";
-    //     };
-    // }
-    
-    
+    q = p - vec3(0.0f, 1.5f + sin(t) / 2, 3.0f);
+    d2 = dist_sphere(0.5f, q);
+    d = smin(d, d2, 0.32);
+        
     vecpack<8, 2> res;
     res[0] = d;
     res[1] = 1.0f;
