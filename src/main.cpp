@@ -41,10 +41,9 @@ void painter_thread(Painter<screen_width, screen_height, min_offset, max_offset>
 }
 
 int main() {
-    constexpr auto dimx = 1280u, dimy = 720u, channels = 4u;
+    constexpr auto dimx = 1280u, dimy = 720u;
     const vec2 dim(dimx, dimy);
 
-    const size_t seconds_between_logs = 1;
     const float walk_speed = 0.2f;
     const float turn_speed = 0.05f;
     vec3 walk_dir;
@@ -75,9 +74,6 @@ int main() {
 
     std::cout << "RUNNING: " << title << std::endl;
     
-    constexpr size_t num_threads = 8;
-    constexpr size_t pixels_per_thread = dimx * dimy / num_threads;
-
     // some template magic could probably help me run this loop sort of statically
     // otherwise the template parameter is not proper
     #ifdef MULTITHREADED

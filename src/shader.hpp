@@ -100,8 +100,6 @@ color Shader::render_pixel(const size_t x, const size_t y) const {
     vec3 color;
     vec2 res = march(config->time, dir);
 
-    float time = config->time;
-
     float hit_time = res[0];
     float hit_texture = res[1];
 

@@ -8,10 +8,10 @@
 class PerformanceMonitor {
     public:
     PerformanceMonitor(unsigned int seconds_between_update)
-        : seconds_between_update(seconds_between_update),
+        : last_update_time(SDL_GetPerformanceCounter()),
           frame_start(SDL_GetPerformanceCounter()),
-          last_update_time(SDL_GetPerformanceCounter()),
-          num_frames(0)
+          num_frames(0),
+          seconds_between_update(seconds_between_update)
            {}
 
     void log_performance() {

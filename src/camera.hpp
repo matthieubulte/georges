@@ -7,8 +7,8 @@
 class Camera {
     public:
     Camera(float fov, vec2 screen_dim, vec3 position, float xz_rotation) :
-        fov(fov), screen_dim(screen_dim), position(position),
-        xz_rotation(xz_rotation), rotation_matrix(rotationY(xz_rotation)) {}
+        position(position), xz_rotation(xz_rotation), fov(fov), screen_dim(screen_dim), 
+        rotation_matrix(rotationY(xz_rotation)) {}
     
     void turn(float angle) {
         xz_rotation += angle;
@@ -45,8 +45,8 @@ class Camera {
     float xz_rotation;
 
     private:
-    vec2 screen_dim;
     float fov;
+    vec2 screen_dim;
     
     mat3 rotation_matrix;
 
