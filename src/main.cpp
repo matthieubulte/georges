@@ -23,7 +23,7 @@
 
 
 #define SIMD
-// #define MULTITHREADED
+#define MULTITHREADED
 
 #define DEF_RENDER_THREAD(i) \
     Painter<dimx, dimy, i*pixels_per_thread, (i+1)*pixels_per_thread> painter##i(&screen, &shader);\
@@ -77,6 +77,9 @@ int main() {
     // some template magic could probably help me run this loop sort of statically
     // otherwise the template parameter is not proper
     #ifdef MULTITHREADED
+    constexpr size_t num_threads = 8;	
+    constexpr size_t pixels_per_thread = dimx * dimy / num_threads;	
+
     DEF_RENDER_THREAD(0); DEF_RENDER_THREAD(1);
     DEF_RENDER_THREAD(2); DEF_RENDER_THREAD(3);
     DEF_RENDER_THREAD(4); DEF_RENDER_THREAD(5);
