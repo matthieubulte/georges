@@ -3,7 +3,9 @@
 
 #define ALIGN __attribute__ ((aligned(32)))
 
+#include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <cmath>
 #include <array>
 
@@ -36,15 +38,15 @@ struct vec2 : vec<2> {
     constexpr vec2() : vec<2>() {}
     constexpr vec2(float f) : vec<2>(f) {}
     constexpr vec2(float x, float y) : vec<2>({x, y}) {}
-    constexpr vec2(const vec<2>& v) : vec<2>({v[0], v[1]}) {}
+    vec2(const vec<2>& v) : vec<2>({v[0], v[1]}) {}
 };
 
 struct vec3 : vec<3> {
     constexpr vec3() : vec<3>() {}
     constexpr vec3(float f) : vec<3>(f) {}
     constexpr vec3(float x, float y, float z) : vec<3>({x, y, z}) {}
-    constexpr vec3(const vec<3>& v) : vec<3>({v[0], v[1], v[2]}) {}
-    constexpr vec3(const vec<2>& xy, float z) : vec<3>({xy[0], xy[1], z}) {}
+    vec3(const vec<3>& v) : vec<3>({v[0], v[1], v[2]}) {}
+    vec3(const vec<2>& xy, float z) : vec<3>({xy[0], xy[1], z}) {}
 };
 
 // SIMD Implementation
