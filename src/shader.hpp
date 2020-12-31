@@ -185,25 +185,26 @@ vec2 Shader::march(const float gt, const vec3& direction) const {
 
 vecpack<8, 2> Shader::march_simd(const float gt, const vecpack<8, 3>& directions) const {
     vecpack<8, 2> res;
+    vecpack<8, 3> cam(camera->position), tpack;
+
     vec<8> distance, texture, t(1.0f), collided(0.0f), col_mask(0.0f);
 
     for (int s = 0; s < config->max_its; s++) {
-        vecpack<8, 2> res = scene->dist_field_simd(gt,
-            camera->position + t * directions
-        );
+        tpack = t;
+        res = scene->dist_field_simd(gt, mul_add(tpack, directions, cam));
         distance = res[0];
         texture = res[1];
 
         collided = distance < 0.0005 * t;
         col_mask = max(col_mask, collided);
 
-        t = t + distance * (1.0 - col_mask);
+        t = mul_add(distance, (1.0 - col_mask), t);
 
         if (sum(col_mask) == 8) break;
     }
 
     // t = -1 if no collision, else distance
-    t = col_mask * t - (1.0f - col_mask);
+    t = mul_add(col_mask, t, col_mask - 1.0f);
     texture = col_mask * texture;
 
     return vecpack<8, 2>({t, texture});

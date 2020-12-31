@@ -177,6 +177,10 @@ vec<8> clamp(const vec<8>& v, float lo, float hi) {
     return max(min(v, hi), lo);
 }
 
+vec<8> mul_add(const vec<8>& v, const vec<8>& w, const vec<8>& z) { 
+    return _mm256_fmadd_ps(v, w, z);
+}
+
 float sum(const vec<8>& v) { 
     return dot(v, 1.0f);
 }
@@ -308,6 +312,11 @@ vec<N> operator%(const vec<N>& lhs, const vec<N>& rhs) {
     vec<N> res;
     for (auto i = 0; i < N; i++) res[i] = fmodf(lhs[i], rhs[i]);
     return res;
+}
+
+template<size_t N>
+vec<N> mul_add(const vec<N>& v, const vec<N>& w, const vec<N>& z) { 
+    return v * w + z;
 }
 
 template<size_t N>

@@ -26,6 +26,16 @@ struct vecpack {
     const vec<N_vecs>& operator[](int i) const {
         return this->data[i];
     }
+
+    vecpack<N_vecs, vec_N>& operator=(vec<vec_N> v) {
+        for (auto i = 0; i < vec_N; i++) this->data[i] = v[i];
+        return *this;
+    }
+
+    vecpack<N_vecs, vec_N>& operator=(vec<N_vecs> v) {
+        for (auto i = 0; i < vec_N; i++) this->data[i] = v;
+        return *this;
+    }
 };
 
 template<size_t N_vecs>
@@ -219,6 +229,14 @@ template<size_t N_vecs, size_t vec_N>
 vecpack<N_vecs, vec_N> operator/(const vecpack<N_vecs, vec_N>& lhs, float rhs) { 
     vecpack<N_vecs, vec_N> res;
     for (auto i = 0; i < vec_N; i++) res[i] = lhs[i] / rhs;
+    return res;
+}
+
+
+template<size_t N_vecs, size_t vec_N>
+vecpack<N_vecs, vec_N> mul_add(const vecpack<N_vecs, vec_N>& a, const vecpack<N_vecs, vec_N>& b, const vecpack<N_vecs, vec_N>& c) { 
+    vecpack<N_vecs, vec_N> res;
+    for (auto i = 0; i < vec_N; i++) res[i] = mul_add(a[i], b[i], c[i]);
     return res;
 }
 
